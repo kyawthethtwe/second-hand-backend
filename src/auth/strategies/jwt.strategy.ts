@@ -1,11 +1,13 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import { ConfigService } from '@nestjs/config';
+import { UserRole } from '../../users/entities/user/user.entity';
 interface JwtPayload {
   sub: string;
   email: string;
-  // Add any other fields from your JWT token
+  role: UserRole; // Updated from roles to role
+  name: string; // Add any other fields from your JWT token
 }
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -20,10 +22,16 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       secretOrKey: jwtSecret,
     });
   }
+  //attach user to the request object
   // eslint-disable-next-line @typescript-eslint/require-await
   async validate(
     payload: JwtPayload,
-  ): Promise<{ userId: string; email: string }> {
-    return { userId: payload.sub, email: payload.email };
+  ): Promise<{ userId: string; email: string; role: UserRole; name: string }> {
+    return {
+      userId: payload.sub,
+      email: payload.email,
+      role: payload.role,
+      name: payload.name,
+    };
   }
 }

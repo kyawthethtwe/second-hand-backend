@@ -1,14 +1,20 @@
 import {
-  Entity,
-  PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
+  Entity,
+  PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 
 export enum AuthProvider {
   EMAIL = 'email',
   GOOGLE = 'google',
+}
+
+export enum UserRole {
+  USER = 'user',
+  SELLER = 'seller',
+  ADMIN = 'admin',
 }
 
 @Entity()
@@ -30,6 +36,13 @@ export class User {
 
   @Column({ default: false })
   isSeller: boolean;
+
+  @Column({
+    type: 'enum',
+    enum: UserRole,
+    default: UserRole.USER,
+  })
+  role: UserRole;
 
   @CreateDateColumn()
   createdAt: Date;
