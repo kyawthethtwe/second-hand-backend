@@ -1,33 +1,27 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
-import { UsersModule } from './users/users.module';
+import dataSource from './config/typeorm.config';
 import { User } from './users/entities/user/user.entity';
+import { UsersModule } from './users/users.module';
+import { ProductsModule } from './products/products.module';
+import { CategoryModule } from './category/category.module';
+import { TransactionModule } from './transaction/transaction.module';
 @Module({
   imports: [
     TypeOrmModule.forFeature([User]),
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-    TypeOrmModule.forRootAsync({
-      imports: [ConfigModule],
-      useFactory: (config: ConfigService) => ({
-        type: 'postgres',
-        host: config.get('DB_HOST'),
-        port: +config.get('DB_PORT'),
-        username: config.get('DB_USERNAME'),
-        password: config.get('DB_PASSWORD'),
-        database: config.get('DB_NAME'),
-        autoLoadEntities: true,
-        synchronize: true, // Set to false in production
-      }),
-      inject: [ConfigService],
-    }),
+    TypeOrmModule.forRoot(dataSource.options),
     AuthModule,
     UsersModule,
+    ProductsModule,
+    CategoryModule,
+    TransactionModule,
   ],
   controllers: [AppController],
   providers: [AppService],

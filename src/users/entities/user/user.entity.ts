@@ -2,9 +2,11 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { Product } from '../../../products/entities/product.entity';
 
 export enum AuthProvider {
   EMAIL = 'email',
@@ -34,15 +36,15 @@ export class User {
   @Column({ type: 'enum', enum: AuthProvider, default: AuthProvider.EMAIL })
   provider: AuthProvider;
 
-  @Column({ default: false })
-  isSeller: boolean;
-
   @Column({
     type: 'enum',
     enum: UserRole,
     default: UserRole.USER,
   })
   role: UserRole;
+
+  @OneToMany(() => Product, (product) => product.seller)
+  products: Product[];
 
   @CreateDateColumn()
   createdAt: Date;
