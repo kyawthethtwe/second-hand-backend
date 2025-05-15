@@ -6,8 +6,8 @@ import { UserRole } from '../../users/entities/user/user.entity';
 interface JwtPayload {
   sub: string;
   email: string;
-  role: UserRole; // Updated from roles to role
-  name: string; // Add any other fields from your JWT token
+  role: UserRole;
+  name: string;
 }
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
