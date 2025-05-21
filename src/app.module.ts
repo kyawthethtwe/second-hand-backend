@@ -13,6 +13,8 @@ import { ProductsModule } from './products/products.module';
 import { TransactionModule } from './transaction/transaction.module';
 import { User } from './users/entities/user/user.entity';
 import { UsersModule } from './users/users.module';
+import { ImagesModule } from './images/images.module';
+import { CloudinaryModule } from './cloudinary/cloudinary.module';
 @Module({
   imports: [
     TypeOrmModule.forFeature([User]),
@@ -25,6 +27,8 @@ import { UsersModule } from './users/users.module';
     ProductsModule,
     CategoryModule,
     TransactionModule,
+    ImagesModule,
+    CloudinaryModule,
   ],
   controllers: [AppController],
   providers: [

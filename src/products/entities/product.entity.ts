@@ -5,10 +5,11 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
+  OneToMany,
 } from 'typeorm';
 import { Category } from '../../category/entities/category.entity';
 import { User } from '../../users/entities/user/user.entity';
-
+import { ProductImage } from '../../images/entities/image.entity';
 export enum ProductCondition {
   NEW = 'new',
   LIKE_NEW = 'like_new',
@@ -76,10 +77,10 @@ export class Product {
   @Column()
   categoryId: string;
 
-  //   @OneToMany(() => ProductImage, (image) => image.product, {
-  //     cascade: true,
-  //   })
-  //   images: ProductImage[];
+  @OneToMany(() => ProductImage, (image) => image.product, {
+    cascade: true,
+  })
+  images: ProductImage[];
 
   @Column({ default: false })
   isNegotiable: boolean;
