@@ -10,7 +10,8 @@ async function bootstrap() {
     new ValidationPipe({
       whitelist: true, // Strip properties that don't have decorators
       transform: true, // Transform payloads to DTO instances
-      forbidNonWhitelisted: true, // Throw error if non-whitelisted properties are present
+      forbidNonWhitelisted: false, // Allow files for file upload endpoints
+      skipMissingProperties: false, // Validate all properties
     }),
   );
 
@@ -19,4 +20,4 @@ async function bootstrap() {
 
   await app.listen(process.env.PORT ?? 3000);
 }
-bootstrap();
+bootstrap().catch(console.error);

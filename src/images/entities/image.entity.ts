@@ -1,15 +1,21 @@
-import { Product } from '../../products/entities/product.entity';
 import {
   Column,
   CreateDateColumn,
   Entity,
-  ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 
+export enum ImageType {
+  PRODUCT = 'product',
+  PROFILE = 'profile',
+  CATEGORY = 'category',
+  BANNER = 'banner',
+  OTHER = 'other',
+}
+
 @Entity()
-export class ProductImage {
+export class Image {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -37,13 +43,18 @@ export class ProductImage {
   @Column({ nullable: true })
   format: string; // jpg, png, webp, etc.
 
-  @ManyToOne(() => Product, (product) => product.images, {
-    onDelete: 'CASCADE',
+  @Column({
+    type: 'enum',
+    enum: ImageType,
+    default: ImageType.OTHER,
   })
-  product: Product;
+  type: ImageType;
 
-  @Column()
-  productId: string;
+  @Column({ nullable: true })
+  entityId: string; // ID of the related entity (product, user, category, etc.)
+
+  @Column({ nullable: true })
+  entityType: string; // Type of the related entity (product, user, category, etc.)
 
   @CreateDateColumn()
   createdAt: Date;

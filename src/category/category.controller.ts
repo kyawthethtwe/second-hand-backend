@@ -6,7 +6,11 @@ import {
   Param,
   Patch,
   Post,
+  UploadedFile,
+  UploadedFiles,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { Public } from '../auth/decorators/public.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/entities/user/user.entity';
@@ -29,6 +33,65 @@ export class CategoryController {
   findAll() {
     return this.categoryService.findAll();
   }
+
+  // ===== SPECIFIC ROUTES FIRST =====
+
+  // Upload a single image for a category
+  @Post(':id/image')
+  @Roles(UserRole.ADMIN)
+  @UseInterceptors(FileInterceptor('file'))
+  uploadImage(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+    @Body('isMain') isMain?: boolean,
+  ) {
+    console.log('=== UPLOAD IMAGE ROUTE HIT ===');
+    console.log('Category ID:', id);
+    console.log('Uploaded file in controller:', file);
+    return this.categoryService.uploadImage(id, file, isMain);
+  }
+
+  // Upload multiple images for a category
+  @Post(':id/images')
+  @Roles(UserRole.ADMIN)
+  @UseInterceptors(FilesInterceptor('files', 10))
+  uploadMultipleImages(
+    @Param('id') id: string,
+    @UploadedFiles() files: Express.Multer.File[],
+  ) {
+    return this.categoryService.uploadMultipleImages(id, files);
+  }
+
+  // Get all images for a category
+  @Get(':id/images')
+  @Public()
+  getImages(@Param('id') id: string) {
+    return this.categoryService.getImages(id);
+  }
+
+  // Delete an image from a category
+  @Delete(':id/image/:imageId')
+  @Roles(UserRole.ADMIN)
+  deleteImage(@Param('id') id: string, @Param('imageId') imageId: string) {
+    return this.categoryService.deleteImage(id, imageId);
+  }
+
+  // // Test route (keep this for testing if needed)
+  // @Post(':id/test')
+  // @Roles(UserRole.ADMIN)
+  // @UseInterceptors(FileInterceptor('file'))
+  // testUpload(
+  //   @Param('id') id: string,
+  //   @UploadedFile() file: Express.Multer.File,
+  //   @Body('isMain') isMain?: boolean,
+  // ) {
+  //   console.log('Received file:', file);
+  //   console.log('Category ID:', id);
+  //   console.log('Is main image:', isMain);
+  //   return { message: 'File uploaded successfully for test route', isMain };
+  // }
+
+  // ===== GENERAL ROUTES LAST =====
 
   @Get(':id')
   @Public()

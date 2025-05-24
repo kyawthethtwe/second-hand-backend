@@ -36,25 +36,28 @@ export class ImagesController {
   }
 
   /**
-   * Upload multiple images for a product
+   * Upload multiple images
    */
-  @Post('upload/product/:productId')
+  @Post('upload/multiple')
   @Roles(UserRole.SELLER, UserRole.ADMIN)
   @UseInterceptors(FilesInterceptor('files', 10)) // Max 10 images per upload
   async uploadMultipleImages(
-    @Param('productId') productId: string,
     @UploadedFiles() files: Express.Multer.File[],
+    @Body() createImageDto: CreateImageDto,
   ) {
-    return this.imagesService.addImagesToProduct(productId, files);
+    return this.imagesService.addMultipleImages(files, createImageDto);
   }
 
   /**
-   * Get all images for a product
+   * Get all images for an entity
    */
-  @Get('product/:productId')
+  @Get('entity/:entityType/:entityId')
   @Public()
-  async findByProductId(@Param('productId') productId: string) {
-    return this.imagesService.findByProductId(productId);
+  async findByEntity(
+    @Param('entityType') entityType: string,
+    @Param('entityId') entityId: string,
+  ) {
+    return this.imagesService.findByEntity(entityId, entityType);
   }
 
   /**

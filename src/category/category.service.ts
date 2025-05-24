@@ -1,6 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { ImageType } from '../images/entities/image.entity';
+import { ImagesService } from '../images/images.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { Category } from './entities/category.entity';
@@ -10,6 +12,7 @@ export class CategoryService {
   constructor(
     @InjectRepository(Category)
     private categoryRepository: Repository<Category>,
+    private readonly imagesService: ImagesService,
   ) {}
 
   // create a new category
@@ -65,5 +68,59 @@ export class CategoryService {
     }
 
     return this.categoryRepository.remove(category);
+  }
+
+  // Upload a single image for a category
+  async uploadImage(
+    categoryId: string,
+    file: Express.Multer.File,
+    isMain: boolean = false,
+  ) {
+    if (!file) {
+      throw new NotFoundException('No file uploaded');
+    }
+    const category = await this.findOne(categoryId);
+
+    return this.imagesService.create(file, {
+      type: ImageType.CATEGORY,
+      entityId: category.id,
+      entityType: 'category',
+      isMain,
+    });
+  }
+
+  // Upload multiple images for a category
+  async uploadMultipleImages(categoryId: string, files: Express.Multer.File[]) {
+    const category = await this.findOne(categoryId);
+
+    return this.imagesService.addMultipleImages(files, {
+      type: ImageType.CATEGORY,
+      entityId: category.id,
+      entityType: 'category',
+    });
+  }
+
+  // Get all images for a category
+  async getImages(categoryId: string) {
+    const category = await this.findOne(categoryId);
+    return this.imagesService.findByEntity(category.id, 'category');
+  }
+
+  // Delete an image from a category
+  async deleteImage(categoryId: string, imageId: string) {
+    const category = await this.findOne(categoryId);
+    const images = await this.imagesService.findByEntity(
+      category.id,
+      'category',
+    );
+
+    const image = images.find((img) => img.id === imageId);
+    if (!image) {
+      throw new NotFoundException(
+        `Image with ID "${imageId}" not found for this category`,
+      );
+    }
+
+    return this.imagesService.remove(imageId);
   }
 }
