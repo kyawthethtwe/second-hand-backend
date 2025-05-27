@@ -76,21 +76,6 @@ export class CategoryController {
     return this.categoryService.deleteImage(id, imageId);
   }
 
-  // // Test route (keep this for testing if needed)
-  // @Post(':id/test')
-  // @Roles(UserRole.ADMIN)
-  // @UseInterceptors(FileInterceptor('file'))
-  // testUpload(
-  //   @Param('id') id: string,
-  //   @UploadedFile() file: Express.Multer.File,
-  //   @Body('isMain') isMain?: boolean,
-  // ) {
-  //   console.log('Received file:', file);
-  //   console.log('Category ID:', id);
-  //   console.log('Is main image:', isMain);
-  //   return { message: 'File uploaded successfully for test route', isMain };
-  // }
-
   // ===== GENERAL ROUTES LAST =====
 
   @Get(':id')

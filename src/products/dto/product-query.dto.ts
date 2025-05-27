@@ -1,0 +1,69 @@
+import { Transform } from 'class-transformer';
+import {
+    IsEnum,
+    IsNumber,
+    IsOptional,
+    IsString,
+    Max,
+    Min,
+} from 'class-validator';
+import { ProductCondition, ProductStatus } from '../entities/product.entity';
+
+export class ProductQueryDto {
+  @IsOptional()
+  @Transform(({ value }) => parseInt(value))
+  @IsNumber()
+  @Min(1)
+  page?: number = 1;
+
+  @IsOptional()
+  @Transform(({ value }) => parseInt(value))
+  @IsNumber()
+  @Min(1)
+  @Max(100)
+  limit?: number = 20;
+
+  @IsOptional()
+  @IsString()
+  search?: string;
+
+  @IsOptional()
+  @IsString()
+  categoryId?: string;
+
+  @IsOptional()
+  @IsEnum(ProductCondition)
+  condition?: ProductCondition;
+
+  @IsOptional()
+  @Transform(({ value }) => parseFloat(value))
+  @IsNumber()
+  @Min(0)
+  minPrice?: number;
+
+  @IsOptional()
+  @Transform(({ value }) => parseFloat(value))
+  @IsNumber()
+  @Min(0)
+  maxPrice?: number;
+
+  @IsOptional()
+  @IsString()
+  location?: string;
+
+  @IsOptional()
+  @IsString()
+  sellerId?: string;
+
+  @IsOptional()
+  @IsEnum(ProductStatus)
+  status?: ProductStatus = ProductStatus.ACTIVE;
+
+  @IsOptional()
+  @IsEnum(['price', 'createdAt', 'viewCount'])
+  sortBy?: 'price' | 'createdAt' | 'viewCount' = 'createdAt';
+
+  @IsOptional()
+  @IsEnum(['ASC', 'DESC'])
+  sortOrder?: 'ASC' | 'DESC' = 'DESC';
+}
