@@ -1,11 +1,11 @@
 import { Transform } from 'class-transformer';
 import {
-    IsEnum,
-    IsNumber,
-    IsOptional,
-    IsString,
-    Max,
-    Min,
+  IsEnum,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
 } from 'class-validator';
 import { ProductCondition, ProductStatus } from '../entities/product.entity';
 

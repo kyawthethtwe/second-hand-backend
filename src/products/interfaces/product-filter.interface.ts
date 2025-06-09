@@ -1,4 +1,8 @@
-import { ProductCondition, ProductStatus } from '../entities/product.entity';
+import {
+  Product,
+  ProductCondition,
+  ProductStatus,
+} from '../entities/product.entity';
 
 export interface ProductFilterOptions {
   page?: number;
@@ -16,7 +20,7 @@ export interface ProductFilterOptions {
 }
 
 export interface ProductListResponse {
-  products: any[]; // Will be Product[] in actual usage
+  products: Product[];
   total: number;
   page: number;
   totalPages: number;
