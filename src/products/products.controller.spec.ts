@@ -159,7 +159,10 @@ describe('ProductsController (integration)', () => {
       const result = await controller.create(createProductDto, mockReq as any);
 
       expect(result).toEqual(expectedProduct);
-      expect(service.create).toHaveBeenCalledWith(createProductDto, mockUser.id);
+      expect(service.create).toHaveBeenCalledWith(
+        createProductDto,
+        mockUser.id,
+      );
     });
 
     it('should update a product', async () => {
@@ -193,7 +196,9 @@ describe('ProductsController (integration)', () => {
 
     it('should get my products', async () => {
       const mockUserProducts = [mockProduct];
-      jest.spyOn(service, 'getSellerProducts').mockResolvedValue(mockUserProducts);
+      jest
+        .spyOn(service, 'getSellerProducts')
+        .mockResolvedValue(mockUserProducts);
 
       const mockReq = {
         user: mockUser,

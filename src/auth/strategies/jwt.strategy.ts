@@ -26,9 +26,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   // eslint-disable-next-line @typescript-eslint/require-await
   async validate(
     payload: JwtPayload,
-  ): Promise<{ userId: string; email: string; role: UserRole; name: string }> {
+  ): Promise<{ id: string; email: string; role: UserRole; name: string }> {
     return {
-      userId: payload.sub,
+      id: payload.sub,
       email: payload.email,
       role: payload.role,
       name: payload.name,

@@ -8,10 +8,11 @@ import {
   Patch,
   Post,
   Query,
-  Request,
+  Req,
   UseGuards,
   ValidationPipe,
 } from '@nestjs/common';
+import { Request } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CreateProductDto } from './dto/create-product.dto';
 import { ProductQueryDto } from './dto/product-query.dto';
@@ -19,12 +20,11 @@ import { ProductSearchDto } from './dto/product-search.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { ProductStatus } from './entities/product.entity';
 import { ProductsService } from './products.service';
-
+// import { Roles } from 'src/auth/decorators/roles.decorator';
+// import { UserRole } from 'src/users/entities/user/user.entity';
+import { User } from 'src/users/entities/user/user.entity';
 interface AuthenticatedRequest extends Request {
-  user: {
-    id: string;
-    email: string;
-  };
+  user: User;
 }
 
 @Controller('products')
@@ -35,11 +35,12 @@ export class ProductsController {
   @UseGuards(JwtAuthGuard)
   async create(
     @Body(ValidationPipe) createProductDto: CreateProductDto,
-    @Request() req: AuthenticatedRequest,
+    @Req() req: AuthenticatedRequest,
   ) {
+    console.log('Creating product for user:', req.user.id);
     return this.productsService.create(createProductDto, req.user.id);
   }
-
+  @UseGuards(JwtAuthGuard)
   @Get()
   async findAll(@Query(ValidationPipe) queryDto: ProductQueryDto) {
     return this.productsService.findAll(queryDto);
@@ -58,13 +59,13 @@ export class ProductsController {
 
   @Get('my-products')
   @UseGuards(JwtAuthGuard)
-  async getMyProducts(@Request() req: AuthenticatedRequest) {
+  async getMyProducts(@Req() req: AuthenticatedRequest) {
     return this.productsService.getSellerProducts(req.user.id);
   }
 
   @Get('statistics')
   @UseGuards(JwtAuthGuard)
-  async getProductStatistics(@Request() req: AuthenticatedRequest) {
+  async getProductStatistics(@Req() req: AuthenticatedRequest) {
     // This could be enhanced to return seller-specific statistics
     const products = await this.productsService.getSellerProducts(req.user.id);
     return {
@@ -93,7 +94,7 @@ export class ProductsController {
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body(ValidationPipe) updateProductDto: UpdateProductDto,
-    @Request() req: AuthenticatedRequest,
+    @Req() req: AuthenticatedRequest,
   ) {
     return this.productsService.update(id, updateProductDto, req.user.id);
   }
@@ -102,7 +103,7 @@ export class ProductsController {
   @UseGuards(JwtAuthGuard)
   async markAsSold(
     @Param('id', ParseUUIDPipe) id: string,
-    @Request() req: AuthenticatedRequest,
+    @Req() req: AuthenticatedRequest,
   ) {
     return this.productsService.markAsSold(id, req.user.id);
   }
@@ -111,7 +112,7 @@ export class ProductsController {
   @UseGuards(JwtAuthGuard)
   async toggleFavorite(
     @Param('id', ParseUUIDPipe) id: string,
-    @Request() req: AuthenticatedRequest,
+    @Req() req: AuthenticatedRequest,
   ) {
     // This would need integration with a user favorites service
     // For now, just increment the favorite count
@@ -147,7 +148,7 @@ export class ProductsController {
   @UseGuards(JwtAuthGuard)
   async remove(
     @Param('id', ParseUUIDPipe) id: string,
-    @Request() req: AuthenticatedRequest,
+    @Req() req: AuthenticatedRequest,
   ) {
     return this.productsService.remove(id, req.user.id);
   }
