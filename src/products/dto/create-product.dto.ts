@@ -1,4 +1,5 @@
 import {
+  IsArray,
   IsBoolean,
   IsDateString,
   IsEnum,
@@ -88,4 +89,10 @@ export class CreateProductDto {
   @IsOptional()
   @IsDateString()
   availableUntil?: Date;
+
+  // Image file names (for tracking which images to associate after upload)
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  imageFileNames?: string[];
 }

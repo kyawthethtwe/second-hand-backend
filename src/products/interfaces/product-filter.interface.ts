@@ -1,8 +1,13 @@
+import { Image } from '../../images/entities/image.entity';
 import {
   Product,
   ProductCondition,
   ProductStatus,
 } from '../entities/product.entity';
+
+export interface ProductWithImages extends Product {
+  images?: Image[];
+}
 
 export interface ProductFilterOptions {
   page?: number;

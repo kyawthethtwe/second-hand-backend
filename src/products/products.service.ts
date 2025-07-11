@@ -5,7 +5,10 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { ImageType } from 'src/images/entities/image.entity';
 import { Between, FindOptionsWhere, ILike, Repository } from 'typeorm';
+import { CategoryService } from '../category/category.service';
+import { ImagesService } from '../images/images.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { ProductSearchDto } from './dto/product-search.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -13,27 +16,66 @@ import { Product, ProductStatus } from './entities/product.entity';
 import {
   ProductFilterOptions,
   ProductListResponse,
+  ProductWithImages,
 } from './interfaces/product-filter.interface';
 import { ProductCacheService } from './services/product-cache.service';
-
 @Injectable()
 export class ProductsService {
   constructor(
     @InjectRepository(Product)
     private readonly productRepository: Repository<Product>,
     private readonly cacheService: ProductCacheService,
+    private readonly imageService: ImagesService,
+    private readonly categoryService: CategoryService,
   ) {}
   // Create a new product
   async create(
     createProductDto: CreateProductDto,
     sellerId: string,
+    files?: Express.Multer.File[],
   ): Promise<Product> {
+    // Check if seller exists
+    if (!sellerId) {
+      throw new BadRequestException('Seller ID is required');
+    }
+    // Validate category ID
+    if (createProductDto.categoryId) {
+      const category = await this.categoryService.findOne(
+        createProductDto.categoryId,
+      );
+      if (!category) {
+        throw new NotFoundException(
+          `Category with ID ${createProductDto.categoryId} not found`,
+        );
+      }
+    }
+
+    // Create product entity
     const product = this.productRepository.create({
       ...createProductDto,
       sellerId,
     });
 
+    // Save product to database
     const savedProduct = await this.productRepository.save(product);
+
+    // Handle image uploads if files are provided
+    if (files && files.length > 0) {
+      try {
+        await this.imageService.addMultipleImages(files, {
+          type: ImageType.PRODUCT,
+          entityId: savedProduct.id,
+          entityType: 'product',
+        });
+        console.log(
+          `Uploaded ${files.length} images for product ${savedProduct.id}`,
+        );
+      } catch (error) {
+        console.error('Error uploading images:', error);
+        // You might want to delete the product if image upload fails
+        // or just log the error and continue
+      }
+    }
 
     // Invalidate relevant caches
     await this.cacheService.invalidateProductCache(
@@ -94,7 +136,10 @@ export class ProductsService {
   }
 
   // Find a single product by ID and increment view count
-  async findOne(id: string, incrementView: boolean = true): Promise<Product> {
+  async findOne(
+    id: string,
+    incrementView: boolean = true,
+  ): Promise<ProductWithImages> {
     // Try to get from cache first (only if not incrementing view)
     if (!incrementView) {
       const cachedProduct = await this.cacheService.getCachedProduct(id);
@@ -112,10 +157,14 @@ export class ProductsService {
       throw new NotFoundException(`Product with ID ${id} not found`);
     }
 
+    // Get product images
+    const images = await this.imageService.findByEntity(id, 'product');
+    const productWithImages: ProductWithImages = { ...product, images };
+
     // Increment view count if requested
     if (incrementView) {
       await this.productRepository.increment({ id }, 'viewCount', 1);
-      product.viewCount += 1;
+      productWithImages.viewCount += 1;
 
       // Invalidate cache since view count changed
       await this.cacheService.invalidateProductCache(
@@ -128,7 +177,7 @@ export class ProductsService {
       await this.cacheService.cacheProduct(product);
     }
 
-    return product;
+    return productWithImages;
   }
 
   // Update product with seller authorization

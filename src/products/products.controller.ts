@@ -9,9 +9,12 @@ import {
   Post,
   Query,
   Req,
+  UploadedFiles,
   UseGuards,
+  UseInterceptors,
   ValidationPipe,
 } from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import { Request } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -23,6 +26,7 @@ import { ProductsService } from './products.service';
 // import { Roles } from 'src/auth/decorators/roles.decorator';
 // import { UserRole } from 'src/users/entities/user/user.entity';
 import { User } from 'src/users/entities/user/user.entity';
+import { Public } from '../auth/decorators/public.decorator';
 interface AuthenticatedRequest extends Request {
   user: User;
 }
@@ -33,14 +37,18 @@ export class ProductsController {
 
   @Post()
   @UseGuards(JwtAuthGuard)
+  @UseInterceptors(FilesInterceptor('images', 10)) // Allow up to 10 images
   async create(
     @Body(ValidationPipe) createProductDto: CreateProductDto,
+    @UploadedFiles() files: Express.Multer.File[],
     @Req() req: AuthenticatedRequest,
   ) {
     console.log('Creating product for user:', req.user.id);
-    return this.productsService.create(createProductDto, req.user.id);
+    console.log('Number of uploaded files:', files?.length || 0);
+    return this.productsService.create(createProductDto, req.user.id, files);
   }
-  @UseGuards(JwtAuthGuard)
+
+  @Public()
   @Get()
   async findAll(@Query(ValidationPipe) queryDto: ProductQueryDto) {
     return this.productsService.findAll(queryDto);
