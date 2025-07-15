@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ImageType } from 'src/images/entities/image.entity';
+import { Image, ImageType } from 'src/images/entities/image.entity';
 import { Between, FindOptionsWhere, ILike, Repository } from 'typeorm';
 import { CategoryService } from '../category/category.service';
 import { ImagesService } from '../images/images.service';
@@ -102,6 +102,7 @@ export class ProductsService {
       status = ProductStatus.ACTIVE,
       sortBy = 'createdAt',
       sortOrder = 'DESC',
+      includeImages = false,
     } = options || {};
 
     const skip = (page - 1) * limit;
@@ -127,8 +128,22 @@ export class ProductsService {
       order: { [sortBy]: sortOrder },
     });
 
+    // Optionally include images
+    let productsWithImages = products;
+    if (includeImages) {
+      productsWithImages = await Promise.all(
+        products.map(async (product) => {
+          const images = await this.imageService.findByEntity(
+            product.id,
+            'product',
+          );
+          return { ...product, images };
+        }),
+      );
+    }
+
     return {
-      products,
+      products: productsWithImages,
       total,
       page,
       totalPages: Math.ceil(total / limit),
@@ -278,6 +293,31 @@ export class ProductsService {
     await this.cacheService.cacheSellerProducts(sellerId, products);
 
     return products;
+  }
+
+  // Get only main/primary image for a product (for thumbnails)
+  async getProductMainImage(productId: string): Promise<Image | null> {
+    const images = await this.imageService.findByEntity(productId, 'product');
+    return images.find((img) => img.isMain) || images[0] || null;
+  }
+
+  // Get products with only main images (optimized for listings)
+  async findAllWithMainImages(
+    options?: ProductFilterOptions,
+  ): Promise<ProductListResponse> {
+    const result = await this.findAll(options);
+
+    const productsWithMainImages = await Promise.all(
+      result.products.map(async (product) => {
+        const mainImage = await this.getProductMainImage(product.id);
+        return { ...product, images: mainImage ? [mainImage] : [] };
+      }),
+    );
+
+    return {
+      ...result,
+      products: productsWithMainImages,
+    };
   }
 
   // Advanced search with multiple filters

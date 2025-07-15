@@ -22,10 +22,11 @@ export interface ProductFilterOptions {
   status?: ProductStatus;
   sortBy?: 'price' | 'createdAt' | 'viewCount';
   sortOrder?: 'ASC' | 'DESC';
+  includeImages?: boolean;
 }
 
 export interface ProductListResponse {
-  products: Product[];
+  products: (Product | ProductWithImages)[];
   total: number;
   page: number;
   totalPages: number;
