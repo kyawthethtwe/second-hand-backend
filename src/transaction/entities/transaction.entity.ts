@@ -1,14 +1,14 @@
 import {
-  BeforeInsert,
   Column,
-  CreateDateColumn,
   Entity,
   ManyToOne,
   PrimaryGeneratedColumn,
+  CreateDateColumn,
   UpdateDateColumn,
+  OneToMany,
 } from 'typeorm';
-import { Product } from '../../products/entities/product.entity';
-import { User } from '../../users/entities/user/user.entity';
+import { TransactionItem } from './transaction-item.entity';
+import { User } from 'src/users/entities/user/user.entity';
 
 export enum TransactionStatus {
   PENDING = 'pending',
@@ -18,7 +18,6 @@ export enum TransactionStatus {
   CANCELLED = 'cancelled',
   REFUNDED = 'refunded',
 }
-
 @Entity()
 export class Transaction {
   @PrimaryGeneratedColumn('uuid')
@@ -30,29 +29,14 @@ export class Transaction {
   @Column()
   buyerId: string;
 
-  @ManyToOne(() => User)
-  seller: User;
-
-  @Column()
-  sellerId: string;
-
-  @ManyToOne(() => Product)
-  product: Product;
-
-  @Column()
-  productId: string;
+  @OneToMany(() => TransactionItem, (item) => item.transaction)
+  items: TransactionItem[];
 
   @Column('decimal', { precision: 10, scale: 2 })
-  productPrice: number;
-
-  @Column('decimal', { precision: 10, scale: 4, default: 0.005 }) // 0.5%
-  commissionRate: number;
+  totalAmount: number;
 
   @Column('decimal', { precision: 10, scale: 2 })
-  commissionAmount: number;
-
-  @Column('decimal', { precision: 10, scale: 2 })
-  sellerPayout: number;
+  totalCommission: number;
 
   @Column({
     type: 'enum',
@@ -61,20 +45,22 @@ export class Transaction {
   })
   status: TransactionStatus;
 
+  @Column({ type: 'text', nullable: true })
+  cancellationReason?: string;
+
+  @Column({ type: 'text', nullable: true })
+  paymentMetadata: string; // JSON string for payment details
+
   @Column({ nullable: true })
   paymentIntentId: string;
+
+  // Shipping handled by sellers
+  @Column('json', { nullable: true })
+  shippingInstructions: any; // Buyer's address, notes
 
   @CreateDateColumn()
   createdAt: Date;
 
   @UpdateDateColumn()
   updatedAt: Date;
-
-  @BeforeInsert()
-  calculateCommission() {
-    this.commissionAmount = +(this.productPrice * this.commissionRate).toFixed(
-      2,
-    );
-    this.sellerPayout = +(this.productPrice - this.commissionAmount).toFixed(2);
-  }
 }

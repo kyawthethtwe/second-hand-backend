@@ -88,6 +88,8 @@ export class Product {
   @Column({ default: false })
   isNegotiable: boolean;
 
+  @Column({ default: true })
+  isAvailable: boolean;
   // Analytics and engagement
   @Column({ default: 0 })
   viewCount: number;
@@ -95,6 +97,8 @@ export class Product {
   @Column({ default: 0 })
   favoriteCount: number;
 
+  @Column()
+  quantity: number;
   // Additional product details for second-hand market
   @Column('decimal', { precision: 10, scale: 2, nullable: true })
   originalPrice: number;
