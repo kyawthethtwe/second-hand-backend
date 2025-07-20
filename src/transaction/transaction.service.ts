@@ -232,8 +232,8 @@ export class TransactionService {
     return transaction;
   }
 
-  async findByUser(
-    userId: string,
+  async findByBuyer(
+    buyerId: string,
     query: TransactionQueryDto,
   ): Promise<{
     data: Transaction[];
@@ -241,7 +241,7 @@ export class TransactionService {
     page: number;
     limit: number;
   }> {
-    return this.findAll({ ...query, buyerId: userId });
+    return this.findAll({ ...query, buyerId });
   }
 
   async findBySeller(
