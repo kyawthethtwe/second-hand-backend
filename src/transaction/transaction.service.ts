@@ -1,24 +1,24 @@
 // src/transaction/transaction.service.ts
 import {
-  Injectable,
-  NotFoundException,
   BadRequestException,
   ForbiddenException,
+  Injectable,
+  NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource, In } from 'typeorm';
-import { Transaction, TransactionStatus } from './entities/transaction.entity';
-import {
-  TransactionItem,
-  ItemStatus,
-} from './entities/transaction-item.entity';
+import { DataSource, In, Repository } from 'typeorm';
 import { Product } from '../products/entities/product.entity';
 import { User } from '../users/entities/user/user.entity';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
-import { TransactionQueryDto } from './dto/transaction-query.dto';
-import { UpdateTransactionDto } from './dto/update-transaction.dto';
-import { UpdateTransactionItemDto } from './dto/update-transaction-item.dto';
 import { CreatePaymentIntentDto } from './dto/payment-intent.dto';
+import { TransactionQueryDto } from './dto/transaction-query.dto';
+import { UpdateTransactionItemDto } from './dto/update-transaction-item.dto';
+import { UpdateTransactionDto } from './dto/update-transaction.dto';
+import {
+  ItemStatus,
+  TransactionItem,
+} from './entities/transaction-item.entity';
+import { Transaction, TransactionStatus } from './entities/transaction.entity';
 
 @Injectable()
 export class TransactionService {
@@ -59,7 +59,7 @@ export class TransactionService {
       );
       const products = await this.productRepository.find({
         where: { id: In(productIds) },
-        relations: ['user'], // seller
+        relations: ['seller'], // Load seller relationship
       });
 
       if (products.length !== productIds.length) {

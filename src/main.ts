@@ -1,15 +1,33 @@
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
   const config = new DocumentBuilder()
-    .setTitle('Cats example')
-    .setDescription('The cats API description')
+    .setTitle('Second-Hand E-commerce API')
+    .setDescription('API for second-hand marketplace platform')
     .setVersion('1.0')
-    .addTag('cats')
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        name: 'JWT',
+        description: 'Enter JWT token',
+        in: 'header',
+      },
+      'JWT-auth', // This name here is important for matching up with @ApiBearerAuth() in your controller!
+    )
+    .addTag('Authentication', 'User authentication endpoints')
+    .addTag('Users', 'User management endpoints')
+    .addTag('Products', 'Product management endpoints')
+    .addTag('Categories', 'Category management endpoints')
+    .addTag('Transactions', 'Transaction management endpoints')
+    .addTag('Images', 'Image upload and management endpoints')
     .build();
+
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, documentFactory);
   // Enable validation globally

@@ -1,14 +1,14 @@
 import {
   Column,
+  CreateDateColumn,
   Entity,
   ManyToOne,
-  PrimaryGeneratedColumn,
-  CreateDateColumn,
-  UpdateDateColumn,
   OneToMany,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from 'typeorm';
+import { User } from '../../users/entities/user/user.entity';
 import { TransactionItem } from './transaction-item.entity';
-import { User } from 'src/users/entities/user/user.entity';
 
 export enum TransactionStatus {
   PENDING = 'pending',
@@ -32,10 +32,10 @@ export class Transaction {
   @OneToMany(() => TransactionItem, (item) => item.transaction)
   items: TransactionItem[];
 
-  @Column('decimal', { precision: 10, scale: 2 })
+  @Column('decimal', { precision: 10, scale: 2, default: 0 })
   totalAmount: number;
 
-  @Column('decimal', { precision: 10, scale: 2 })
+  @Column('decimal', { precision: 10, scale: 2, default: 0 })
   totalCommission: number;
 
   @Column({

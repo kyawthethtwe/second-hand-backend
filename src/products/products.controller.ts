@@ -15,6 +15,13 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
+import {
+  ApiBearerAuth,
+  ApiConsumes,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { Request } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -31,6 +38,7 @@ interface AuthenticatedRequest extends Request {
   user: User;
 }
 
+@ApiTags('Products')
 @Controller('products')
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
@@ -38,6 +46,14 @@ export class ProductsController {
   @Post()
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(FilesInterceptor('images', 10)) // Allow up to 10 images
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Create a new product' })
+  @ApiConsumes('multipart/form-data')
+  @ApiResponse({
+    status: 201,
+    description: 'Product created successfully',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async create(
     @Body(ValidationPipe) createProductDto: CreateProductDto,
     @UploadedFiles() files: Express.Multer.File[],
@@ -50,16 +66,31 @@ export class ProductsController {
 
   @Public()
   @Get()
+  @ApiOperation({ summary: 'Get all products with filtering' })
+  @ApiResponse({
+    status: 200,
+    description: 'Products retrieved successfully',
+  })
   async findAll(@Query(ValidationPipe) queryDto: ProductQueryDto) {
     return this.productsService.findAll(queryDto);
   }
 
   @Get('search')
+  @ApiOperation({ summary: 'Advanced search for products' })
+  @ApiResponse({
+    status: 200,
+    description: 'Search results retrieved successfully',
+  })
   async search(@Query(ValidationPipe) searchDto: ProductSearchDto) {
     return this.productsService.advancedSearch(searchDto);
   }
 
   @Get('featured')
+  @ApiOperation({ summary: 'Get featured products' })
+  @ApiResponse({
+    status: 200,
+    description: 'Featured products retrieved successfully',
+  })
   async getFeatured(@Query('limit') limit?: string) {
     const limitNum = limit ? parseInt(limit, 10) : 10;
     return this.productsService.getFeaturedProducts(limitNum);
@@ -67,12 +98,26 @@ export class ProductsController {
 
   @Get('my-products')
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: "Get current user's products" })
+  @ApiResponse({
+    status: 200,
+    description: 'User products retrieved successfully',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getMyProducts(@Req() req: AuthenticatedRequest) {
     return this.productsService.getSellerProducts(req.user.id);
   }
 
   @Get('statistics')
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: "Get user's product statistics" })
+  @ApiResponse({
+    status: 200,
+    description: 'Statistics retrieved successfully',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getProductStatistics(@Req() req: AuthenticatedRequest) {
     // This could be enhanced to return seller-specific statistics
     const products = await this.productsService.getSellerProducts(req.user.id);
@@ -88,17 +133,38 @@ export class ProductsController {
   }
 
   @Get('seller/:sellerId')
+  @ApiOperation({ summary: 'Get products by seller ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Seller products retrieved successfully',
+  })
+  @ApiResponse({ status: 404, description: 'Seller not found' })
   async getSellerProducts(@Param('sellerId', ParseUUIDPipe) sellerId: string) {
     return this.productsService.getSellerProducts(sellerId);
   }
 
   @Get(':id')
+  @ApiOperation({ summary: 'Get a specific product by ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Product retrieved successfully',
+  })
+  @ApiResponse({ status: 404, description: 'Product not found' })
   async findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.productsService.findOne(id);
   }
 
   @Patch(':id')
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Update a product' })
+  @ApiResponse({
+    status: 200,
+    description: 'Product updated successfully',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Not product owner' })
+  @ApiResponse({ status: 404, description: 'Product not found' })
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body(ValidationPipe) updateProductDto: UpdateProductDto,
@@ -109,6 +175,15 @@ export class ProductsController {
 
   @Patch(':id/mark-sold')
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Mark a product as sold' })
+  @ApiResponse({
+    status: 200,
+    description: 'Product marked as sold successfully',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Not product owner' })
+  @ApiResponse({ status: 404, description: 'Product not found' })
   async markAsSold(
     @Param('id', ParseUUIDPipe) id: string,
     @Req() req: AuthenticatedRequest,
@@ -118,6 +193,14 @@ export class ProductsController {
 
   @Patch(':id/favorite')
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Toggle favorite status for a product' })
+  @ApiResponse({
+    status: 200,
+    description: 'Favorite status toggled successfully',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'Product not found' })
   async toggleFavorite(
     @Param('id', ParseUUIDPipe) id: string,
     @Req() req: AuthenticatedRequest,
@@ -135,6 +218,11 @@ export class ProductsController {
   }
 
   @Get('nearby')
+  @ApiOperation({ summary: 'Get nearby products based on location' })
+  @ApiResponse({
+    status: 200,
+    description: 'Nearby products retrieved successfully',
+  })
   async getNearbyProducts(
     @Query('latitude') latitude: string,
     @Query('longitude') longitude: string,
@@ -154,6 +242,15 @@ export class ProductsController {
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Delete a product' })
+  @ApiResponse({
+    status: 200,
+    description: 'Product deleted successfully',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Not product owner' })
+  @ApiResponse({ status: 404, description: 'Product not found' })
   async remove(
     @Param('id', ParseUUIDPipe) id: string,
     @Req() req: AuthenticatedRequest,
