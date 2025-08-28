@@ -15,6 +15,7 @@ import { User } from './users/entities/user/user.entity';
 import { UsersModule } from './users/users.module';
 import { ImagesModule } from './images/images.module';
 import { CloudinaryModule } from './cloudinary/cloudinary.module';
+import { StripeModule } from './stripe/stripe.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { CloudinaryModule } from './cloudinary/cloudinary.module';
     TransactionModule,
     ImagesModule,
     CloudinaryModule,
+    StripeModule,
   ],
   controllers: [AppController],
   providers: [
