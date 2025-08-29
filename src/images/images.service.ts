@@ -18,9 +18,7 @@ export class ImagesService {
     private readonly cloudinaryService: CloudinaryService,
   ) {}
 
-  /**
-   * Upload and create a new image
-   */
+  //Upload and create a new image
   async create(
     file: Express.Multer.File,
     createImageDto: CreateImageDto,
@@ -74,9 +72,7 @@ export class ImagesService {
     }
   }
 
-  /**
-   * Add multiple images using parallel uploads
-   */
+  //Add multiple images using parallel uploads
   async addMultipleImages(
     files: Express.Multer.File[],
     createImageDto: CreateImageDto,
@@ -141,16 +137,12 @@ export class ImagesService {
     }
   }
 
-  /**
-   * Find all images
-   */
+  //Find all images
   async findAll(): Promise<Image[]> {
     return this.imageRepository.find();
   }
 
-  /**
-   * Find all images for a specific entity
-   */
+  //Find all images for a specific entity
   async findByEntity(entityId: string, entityType: string): Promise<Image[]> {
     return this.imageRepository.find({
       where: { entityId, entityType },
@@ -161,9 +153,7 @@ export class ImagesService {
     });
   }
 
-  /**
-   * Find one image by ID
-   */
+  //Find one image by ID
   async findOne(id: string): Promise<Image> {
     const image = await this.imageRepository.findOne({ where: { id } });
 
@@ -174,9 +164,7 @@ export class ImagesService {
     return image;
   }
 
-  /**
-   * Update an image
-   */
+  //Update an image
   async update(id: string, updateImageDto: UpdateImageDto): Promise<Image> {
     const image = await this.findOne(id);
 
@@ -198,9 +186,7 @@ export class ImagesService {
     return this.imageRepository.save(image);
   }
 
-  /**
-   * Remove an image (delete from both Cloudinary and database)
-   */
+  //Remove an image (delete from both Cloudinary and database)
   async remove(id: string): Promise<void> {
     const image = await this.findOne(id);
 
@@ -213,9 +199,7 @@ export class ImagesService {
     await this.imageRepository.remove(image);
   }
 
-  /**
-   * Get the appropriate folder path for Cloudinary uploads
-   */
+  // Get the appropriate folder path for Cloudinary uploads
   private getFolderPath(type: ImageType, entityId: string): string {
     switch (type) {
       case ImageType.PRODUCT:

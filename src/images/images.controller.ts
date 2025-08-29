@@ -34,7 +34,7 @@ export class ImagesController {
    * Upload a single image
    */
   @Post('upload')
-  @Roles(UserRole.SELLER, UserRole.ADMIN)
+  // @Roles(UserRole.SELLER, UserRole.ADMIN)
   @UseInterceptors(FileInterceptor('file'))
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Upload a single image' })
@@ -59,7 +59,7 @@ export class ImagesController {
    * Upload multiple images
    */
   @Post('upload/multiple')
-  @Roles(UserRole.SELLER, UserRole.ADMIN)
+  // @Roles(UserRole.SELLER, UserRole.ADMIN)
   @UseInterceptors(FilesInterceptor('files', 10)) // Max 10 images per upload
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Upload multiple images' })
@@ -136,7 +136,7 @@ export class ImagesController {
    * Update image metadata
    */
   @Patch(':id')
-  @Roles(UserRole.SELLER, UserRole.ADMIN)
+  // @Roles(UserRole.SELLER, UserRole.ADMIN)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Update image metadata' })
   @ApiResponse({
@@ -160,7 +160,7 @@ export class ImagesController {
    * Delete an image
    */
   @Delete(':id')
-  @Roles(UserRole.SELLER, UserRole.ADMIN)
+  // @Roles(UserRole.SELLER, UserRole.ADMIN)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Delete an image' })
   @ApiResponse({

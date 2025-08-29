@@ -19,6 +19,7 @@ import {
   TransactionItem,
 } from './entities/transaction-item.entity';
 import { Transaction, TransactionStatus } from './entities/transaction.entity';
+import { StripeService } from '../stripe/stripe.service';
 
 @Injectable()
 export class TransactionService {
@@ -32,6 +33,7 @@ export class TransactionService {
     @InjectRepository(User)
     private userRepository: Repository<User>,
     private dataSource: DataSource,
+    private stripeService: StripeService,
   ) {}
 
   // ==================== TRANSACTION METHODS ====================
@@ -336,8 +338,6 @@ export class TransactionService {
     }
   }
 
-  // ==================== TRANSACTION ITEM METHODS ====================
-
   async updateTransactionItem(
     itemId: string,
     sellerId: string,
@@ -439,11 +439,9 @@ export class TransactionService {
     };
   }
 
-  // ==================== PAYMENT METHODS ====================
-
   async createPaymentIntent(
     createPaymentIntentDto: CreatePaymentIntentDto,
-  ): Promise<{ clientSecret: string; transactionId: string }> {
+  ): Promise<{ clientSecret: string | null; transactionId: string }> {
     const transaction = await this.findOne(
       createPaymentIntentDto.transactionId,
     );
@@ -452,36 +450,84 @@ export class TransactionService {
       throw new BadRequestException('Transaction is not in pending state');
     }
 
-    // Here you would integrate with Stripe or PayPal
-    // For now, returning a mock response
-    const mockClientSecret = `pi_mock_${Date.now()}`;
+    try {
+      const amountInCents = Math.round(transaction.totalAmount * 100);
 
-    // Update transaction with payment intent
-    await this.transactionRepository.update(transaction.id, {
-      paymentIntentId: mockClientSecret,
-    });
+      //create or get stripe customer
+      let stripeCustomerId = transaction.buyer.stripeCustomerId;
+      if (!stripeCustomerId) {
+        const stripeCustomer = await this.stripeService.createCustomer({
+          email: transaction.buyer.email,
+          name: transaction.buyer.name,
+          phone: transaction.buyer.phone,
+          metadata: { userId: transaction.buyer.id },
+        });
+        stripeCustomerId = stripeCustomer.id;
 
-    return {
-      clientSecret: mockClientSecret,
-      transactionId: transaction.id,
-    };
+        //save stripe customer id
+        await this.userRepository.update(transaction.buyer.id, {
+          stripeCustomerId,
+        });
+      }
+
+      //create payment intent
+      const paymentIntent = await this.stripeService.createPaymentIntent({
+        amount: amountInCents,
+        customerId: stripeCustomerId,
+        metadata: {
+          transactionId: transaction.id,
+          buyerId: transaction.buyer.id,
+        },
+        description: `Order #${transaction.id.slice(-8)} - ${transaction.items.length} items`,
+      });
+
+      //update transaction with payment intent id
+      await this.transactionRepository.update(transaction.id, {
+        paymentIntentId: paymentIntent.id,
+      });
+
+      return {
+        clientSecret: paymentIntent.client_secret,
+        transactionId: transaction.id,
+      };
+    } catch (error: unknown) {
+      throw new BadRequestException(
+        `Payment intent creation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+    }
   }
 
+  // Confirm a payment
   async confirmPayment(
     transactionId: string,
     paymentIntentId: string,
-    paymentMetadata?: any,
+    // paymentMetadata?: any,
   ): Promise<Transaction> {
+    // Find the transaction
     const transaction = await this.findOne(transactionId);
 
+    // Check if the payment intent ID matches
     if (transaction.paymentIntentId !== paymentIntentId) {
       throw new BadRequestException('Payment intent mismatch');
     }
 
+    // Verify with stripe
+    const paymentIntent =
+      await this.stripeService.retrievePaymentIntent(paymentIntentId);
+    if (!paymentIntent || paymentIntent.status !== 'succeeded') {
+      throw new BadRequestException('Payment not successful');
+    }
+
+    // Update the transaction status
     await this.transactionRepository.update(transactionId, {
       status: TransactionStatus.PAID,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      paymentMetadata,
+      paymentMetadata: JSON.stringify({
+        id: paymentIntent.id,
+        amount: paymentIntent.amount,
+        status: paymentIntent.status,
+        chargeId: paymentIntent.latest_charge,
+        paidAt: new Date().toISOString(),
+      }),
     });
 
     // Update all items to paid status
@@ -493,8 +539,7 @@ export class TransactionService {
     return this.findOne(transactionId);
   }
 
-  // ==================== HELPER METHODS ====================
-
+  // HELPER METHODS
   private validateStatusTransition(
     currentStatus: TransactionStatus,
     newStatus: TransactionStatus,
@@ -517,6 +562,7 @@ export class TransactionService {
       [TransactionStatus.REFUNDED]: [],
     };
 
+    // Validate the status transition
     if (!validTransitions[currentStatus]?.includes(newStatus)) {
       throw new BadRequestException(
         `Invalid status transition from ${currentStatus} to ${newStatus}`,
@@ -562,7 +608,7 @@ export class TransactionService {
     }
   }
 
-  // ==================== ANALYTICS METHODS ====================
+  // ANALYTICS METHODS
 
   async getSellerStats(sellerId: string): Promise<{
     totalSales: number;
@@ -579,6 +625,7 @@ export class TransactionService {
       completedOrders: string | null;
     }
 
+    // Get seller statistics
     const stats: SellerStatsRaw | undefined =
       await this.transactionItemRepository
         .createQueryBuilder('item')
@@ -591,6 +638,8 @@ export class TransactionService {
         ])
         .where('item.sellerId = :sellerId', { sellerId })
         .getRawOne();
+
+    // If no stats found, return default values
     if (!stats) {
       return {
         totalSales: 0,
@@ -600,6 +649,7 @@ export class TransactionService {
         completedOrders: 0,
       };
     }
+
     return {
       totalSales: parseInt(stats.totalSales ?? '0') || 0,
       totalRevenue: parseFloat(stats.totalRevenue ?? '0') || 0,
@@ -622,6 +672,7 @@ export class TransactionService {
       completedOrders: string | null;
     }
 
+    // Get buyer statistics
     const stats: BuyerStatsRaw | undefined = await this.transactionRepository
       .createQueryBuilder('transaction')
       .select([
@@ -632,6 +683,8 @@ export class TransactionService {
       ])
       .where('transaction.buyerId = :buyerId', { buyerId })
       .getRawOne();
+
+    // If no stats found, return default values
     if (!stats) {
       return {
         totalPurchases: 0,
@@ -640,6 +693,7 @@ export class TransactionService {
         completedOrders: 0,
       };
     }
+
     return {
       totalPurchases: parseInt(stats.totalPurchases ?? '0') || 0,
       totalSpent: parseFloat(stats.totalSpent ?? '0') || 0,

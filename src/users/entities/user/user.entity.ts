@@ -15,7 +15,6 @@ export enum AuthProvider {
 
 export enum UserRole {
   USER = 'user',
-  SELLER = 'seller',
   ADMIN = 'admin',
 }
 
@@ -28,10 +27,16 @@ export class User {
   email: string;
 
   @Column({ nullable: true })
+  phone: string;
+
+  @Column({ nullable: true })
   password: string;
 
   @Column()
   name: string;
+
+  @Column({ nullable: true })
+  stripeCustomerId: string;
 
   @Column({ type: 'enum', enum: AuthProvider, default: AuthProvider.EMAIL })
   provider: AuthProvider;

@@ -245,12 +245,12 @@ export class TransactionController {
   confirmPayment(
     @Param('transactionId') transactionId: string,
     @Body('paymentIntentId') paymentIntentId: string,
-    @Body('paymentMetadata') paymentMetadata?: any,
+    // @Body('paymentMetadata') paymentMetadata?: any,
   ) {
     return this.transactionService.confirmPayment(
       transactionId,
       paymentIntentId,
-      paymentMetadata,
+      // paymentMetadata,
     );
   }
 }
