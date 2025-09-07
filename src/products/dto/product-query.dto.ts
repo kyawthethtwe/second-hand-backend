@@ -76,5 +76,15 @@ export class ProductQueryDto {
     if (typeof value === 'boolean') return value;
     throw new Error('Invalid boolean value');
   })
+  favorited?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  @Transform(({ value }) => {
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    if (typeof value === 'boolean') return value;
+    throw new Error('Invalid boolean value');
+  })
   includeImages?: boolean = false;
 }

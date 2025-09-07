@@ -34,6 +34,7 @@ import { ProductsService } from './products.service';
 // import { UserRole } from 'src/users/entities/user/user.entity';
 import { User } from 'src/users/entities/user/user.entity';
 import { Public } from '../auth/decorators/public.decorator';
+import { ProductFilterOptions } from './interfaces/product-filter.interface';
 interface AuthenticatedRequest extends Request {
   user: User;
 }
@@ -71,8 +72,16 @@ export class ProductsController {
     status: 200,
     description: 'Products retrieved successfully',
   })
-  async findAll(@Query(ValidationPipe) queryDto: ProductQueryDto) {
-    return this.productsService.findAll(queryDto);
+  async findAll(
+    @Query(ValidationPipe) queryDto: ProductQueryDto,
+    @Req() req?: AuthenticatedRequest,
+  ) {
+    // Add userId if user is authenticated to decorate with favorite status
+    const options: ProductFilterOptions = { ...queryDto };
+    if (req?.user?.id) {
+      options.userId = req.user.id;
+    }
+    return this.productsService.findAll(options);
   }
 
   @Get('search')
@@ -201,20 +210,55 @@ export class ProductsController {
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 404, description: 'Product not found' })
+  @ApiResponse({ status: 400, description: 'Product not available' })
   async toggleFavorite(
     @Param('id', ParseUUIDPipe) id: string,
     @Req() req: AuthenticatedRequest,
   ) {
-    // This would need integration with a user favorites service
-    // For now, just increment the favorite count
-    const product = await this.productsService.findOne(id);
-    // TODO: Use req.user.id to check/toggle user's favorite status
-    console.log('User toggling favorite:', req.user.id); // Placeholder usage
-    return {
-      message: 'Favorite toggled successfully',
-      isFavorited: true, // This would be determined by checking user's favorites
-      totalFavorites: product.favoriteCount + 1,
-    };
+    return this.productsService.toggleFavorite(req.user.id, id);
+  }
+
+  @Get('favorites/my')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: "Get current user's favorite products" })
+  @ApiResponse({
+    status: 200,
+    description: 'User favorites retrieved successfully',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async getMyFavorites(
+    @Query(ValidationPipe) queryDto: ProductQueryDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.productsService.getUserFavorites(req.user.id, queryDto);
+  }
+
+  @Get('favorites/count')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: "Get current user's favorite count" })
+  @ApiResponse({
+    status: 200,
+    description: 'Favorite count retrieved successfully',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async getFavoriteCount(@Req() req: AuthenticatedRequest) {
+    const count = await this.productsService.getFavoriteCount(req.user.id);
+    return { count };
+  }
+
+  @Delete('favorites/clear')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: "Clear all user's favorites" })
+  @ApiResponse({
+    status: 200,
+    description: 'All favorites cleared successfully',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async clearAllFavorites(@Req() req: AuthenticatedRequest) {
+    return this.productsService.clearAllFavorites(req.user.id);
   }
 
   @Get('nearby')

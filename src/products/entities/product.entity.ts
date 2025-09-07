@@ -4,12 +4,13 @@ import {
   Entity,
   Index,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import { Category } from '../../category/entities/category.entity';
 import { User } from '../../users/entities/user/user.entity';
-
+import { UserFavorite } from './user-favorite.entity';
 export enum ProductCondition {
   NEW = 'new',
   LIKE_NEW = 'like_new',
@@ -78,6 +79,9 @@ export class Product {
 
   @Column()
   sellerId: string;
+
+  @OneToMany(() => UserFavorite, (favorite) => favorite.product)
+  favoritedBy: UserFavorite[];
 
   @ManyToOne(() => Category, (category) => category.products)
   category: Category;

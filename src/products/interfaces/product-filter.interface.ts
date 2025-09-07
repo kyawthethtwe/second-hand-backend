@@ -23,6 +23,8 @@ export interface ProductFilterOptions {
   sortBy?: 'price' | 'createdAt' | 'viewCount';
   sortOrder?: 'ASC' | 'DESC';
   includeImages?: boolean;
+  favorited?: boolean;
+  userId?: string;
 }
 
 export interface ProductListResponse {

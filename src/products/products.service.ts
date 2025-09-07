@@ -6,13 +6,15 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Image, ImageType } from 'src/images/entities/image.entity';
-import { Between, FindOptionsWhere, ILike, Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { CategoryService } from '../category/category.service';
 import { ImagesService } from '../images/images.service';
 import { CreateProductDto } from './dto/create-product.dto';
+import { ProductQueryDto } from './dto/product-query.dto';
 import { ProductSearchDto } from './dto/product-search.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { Product, ProductStatus } from './entities/product.entity';
+import { UserFavorite } from './entities/user-favorite.entity';
 import {
   ProductFilterOptions,
   ProductListResponse,
@@ -24,6 +26,8 @@ export class ProductsService {
   constructor(
     @InjectRepository(Product)
     private readonly productRepository: Repository<Product>,
+    @InjectRepository(UserFavorite)
+    private readonly userFavoriteRepository: Repository<UserFavorite>,
     private readonly cacheService: ProductCacheService,
     private readonly imageService: ImagesService,
     private readonly categoryService: CategoryService,
@@ -103,30 +107,58 @@ export class ProductsService {
       sortBy = 'createdAt',
       sortOrder = 'DESC',
       includeImages = false,
+      favorited,
+      userId,
     } = options || {};
 
     const skip = (page - 1) * limit;
-    const where: FindOptionsWhere<Product> = { status };
+    const query = this.productRepository
+      .createQueryBuilder('product')
+      .leftJoinAndSelect('product.seller', 'seller')
+      .leftJoinAndSelect('product.category', 'category')
+      .where('product.status = :status', { status });
 
     // Add filters
     if (search) {
-      where.title = ILike(`%${search}%`);
+      query.andWhere('product.title ILIKE :search', { search: `%${search}%` });
     }
-    if (categoryId) where.categoryId = categoryId;
-    if (condition) where.condition = condition;
-    if (sellerId) where.sellerId = sellerId;
-    if (location) where.location = ILike(`%${location}%`);
+    if (categoryId) {
+      query.andWhere('product.categoryId = :categoryId', { categoryId });
+    }
+    if (condition) {
+      query.andWhere('product.condition = :condition', { condition });
+    }
+    if (sellerId) {
+      query.andWhere('product.sellerId = :sellerId', { sellerId });
+    }
+    if (location) {
+      query.andWhere('product.location ILIKE :location', {
+        location: `%${location}%`,
+      });
+    }
     if (minPrice !== undefined || maxPrice !== undefined) {
-      where.price = Between(minPrice || 0, maxPrice || 999999);
+      if (minPrice !== undefined) {
+        query.andWhere('product.price >= :minPrice', { minPrice });
+      }
+      if (maxPrice !== undefined) {
+        query.andWhere('product.price <= :maxPrice', { maxPrice });
+      }
     }
 
-    const [products, total] = await this.productRepository.findAndCount({
-      where,
-      relations: ['seller', 'category'],
-      skip,
-      take: limit,
-      order: { [sortBy]: sortOrder },
-    });
+    // Handle favorites filtering
+    if (favorited && userId) {
+      query.innerJoin(
+        'product.favoritedBy',
+        'favorite',
+        'favorite.userId = :userId',
+        { userId },
+      );
+    }
+
+    // Apply sorting and pagination
+    query.orderBy(`product.${sortBy}`, sortOrder).skip(skip).take(limit);
+
+    const [products, total] = await query.getManyAndCount();
 
     // Optionally include images
     let productsWithImages = products;
@@ -139,6 +171,14 @@ export class ProductsService {
           );
           return { ...product, images };
         }),
+      );
+    }
+
+    // Decorate with favorite status if userId is provided
+    if (userId && !favorited) {
+      productsWithImages = await this.decorateWithFavoriteStatus(
+        productsWithImages,
+        userId,
       );
     }
 
@@ -195,6 +235,133 @@ export class ProductsService {
     return productWithImages;
   }
 
+  // Toggle favorite
+  async toggleFavorite(
+    userId: string,
+    productId: string,
+  ): Promise<{
+    isFavorited: boolean;
+    favoriteCount: number;
+    message: string;
+  }> {
+    // check the product exist
+    const product = await this.productRepository.findOne({
+      where: { id: productId },
+      select: ['id', 'title', 'isAvailable'],
+    });
+
+    if (!product) {
+      throw new NotFoundException(`Product with ID ${productId} not found`);
+    }
+
+    if (!product.isAvailable) {
+      throw new BadRequestException(
+        `Product with ID ${productId} is not available`,
+      );
+    }
+
+    // check if already favorited
+    const existingFavorite = await this.userFavoriteRepository.findOne({
+      where: { userId, productId },
+    });
+
+    let isFavorited: boolean;
+    let message: string;
+
+    if (existingFavorite) {
+      //remove from favorites
+      await this.userFavoriteRepository.remove(existingFavorite);
+      isFavorited = false;
+      message = 'Removed from favorites';
+    } else {
+      // add to favorites
+      const favorite = this.userFavoriteRepository.create({
+        userId,
+        productId,
+      });
+      await this.userFavoriteRepository.save(favorite);
+      isFavorited = true;
+      message = 'Added to favorites';
+    }
+
+    // get updated favorite count
+    const favoriteCount = await this.userFavoriteRepository.count({
+      where: { productId },
+    });
+
+    return {
+      isFavorited,
+      favoriteCount,
+      message,
+    };
+  }
+
+  // get user favorites
+  async getUserFavorites(
+    userId: string,
+    queryDto: ProductQueryDto,
+  ): Promise<{
+    data: Product[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const result = await this.findAll({
+      ...queryDto,
+      favorited: true,
+      userId,
+    });
+
+    return {
+      data: result.products,
+      total: result.total,
+      page: result.page,
+      limit: queryDto.limit || 20,
+    };
+  }
+
+  async getFavoriteCount(userId: string): Promise<number> {
+    return this.userFavoriteRepository.count({
+      where: { userId },
+    });
+  }
+
+  async clearAllFavorites(
+    userId: string,
+  ): Promise<{ message: string; count: number }> {
+    const favorites = await this.userFavoriteRepository.find({
+      where: { userId },
+    });
+    const count = favorites.length;
+    await this.userFavoriteRepository.remove(favorites);
+
+    return {
+      message: 'All favorites cleared',
+      count,
+    };
+  }
+
+  private async decorateWithFavoriteStatus(
+    products: Product[],
+    userId: string,
+  ): Promise<Product[]> {
+    if (!products.length || !userId) return products;
+
+    const productIds = products.map((p) => p.id);
+    const favorites = await this.userFavoriteRepository.find({
+      where: {
+        userId,
+        productId: In(productIds),
+      },
+      select: ['productId'],
+    });
+    const favoritSet = new Set(favorites.map((f) => f.productId));
+
+    return products.map((product) => ({
+      ...product,
+      isFavorited: favoritSet.has(product.id),
+    }));
+  }
   // Update product with seller authorization
   async update(
     id: string,

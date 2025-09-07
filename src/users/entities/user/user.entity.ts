@@ -7,6 +7,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { Product } from '../../../products/entities/product.entity';
+import { UserFavorite } from '../../../products/entities/user-favorite.entity';
 
 export enum AuthProvider {
   EMAIL = 'email',
@@ -50,6 +51,9 @@ export class User {
 
   @OneToMany(() => Product, (product) => product.seller)
   products: Product[];
+
+  @OneToMany(() => UserFavorite, (favorite) => favorite.user)
+  favorites: UserFavorite[];
 
   @CreateDateColumn()
   createdAt: Date;
