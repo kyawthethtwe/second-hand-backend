@@ -36,8 +36,6 @@ export class TransactionService {
     private stripeService: StripeService,
   ) {}
 
-  // ==================== TRANSACTION METHODS ====================
-
   async createTransaction(
     buyerId: string,
     createTransactionDto: CreateTransactionDto,

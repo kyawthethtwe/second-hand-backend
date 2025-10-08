@@ -76,8 +76,6 @@ export class ProductsService {
         );
       } catch (error) {
         console.error('Error uploading images:', error);
-        // You might want to delete the product if image upload fails
-        // or just log the error and continue
       }
     }
 
