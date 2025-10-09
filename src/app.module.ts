@@ -16,6 +16,7 @@ import { UsersModule } from './users/users.module';
 import { ImagesModule } from './images/images.module';
 import { CloudinaryModule } from './cloudinary/cloudinary.module';
 import { StripeModule } from './stripe/stripe.module';
+import { EmailModule } from './email/email.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { StripeModule } from './stripe/stripe.module';
     ImagesModule,
     CloudinaryModule,
     StripeModule,
+    EmailModule,
   ],
   controllers: [AppController],
   providers: [
