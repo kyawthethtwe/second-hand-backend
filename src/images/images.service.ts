@@ -186,6 +186,22 @@ export class ImagesService {
     return this.imageRepository.save(image);
   }
 
+  //remove images by entity (used when deleting an entity)
+  async removeByEntity(entityId: string, entityType: string): Promise<void> {
+    const images = await this.imageRepository.find({
+      where: { entityId, entityType },
+    });
+
+    for (const image of images) {
+      // Delete from Cloudinary if publicId exists
+      if (image.publicId) {
+        await this.cloudinaryService.deleteImage(image.publicId);
+      }
+    }
+    // Delete from database
+    await this.imageRepository.delete({ entityId, entityType });
+  }
+
   //Remove an image (delete from both Cloudinary and database)
   async remove(id: string): Promise<void> {
     const image = await this.findOne(id);

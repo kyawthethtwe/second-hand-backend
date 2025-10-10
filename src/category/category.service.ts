@@ -15,10 +15,32 @@ export class CategoryService {
     private readonly imagesService: ImagesService,
   ) {}
 
-  // create a new category
-  async create(createCategoryDto: CreateCategoryDto): Promise<Category> {
+  // create a new category with optional image
+  async create(
+    createCategoryDto: CreateCategoryDto,
+    imageFile?: Express.Multer.File,
+  ): Promise<Category> {
+    // Create and save the category first
     const category = this.categoryRepository.create(createCategoryDto);
-    return this.categoryRepository.save(category);
+    const savedCategory = await this.categoryRepository.save(category);
+
+    // If image is provided, upload it
+    if (imageFile) {
+      try {
+        await this.imagesService.create(imageFile, {
+          type: ImageType.CATEGORY,
+          entityId: savedCategory.id,
+          entityType: 'category',
+          isMain: true, // First image is always main
+        });
+      } catch (error) {
+        // Log error but don't fail category creation
+        console.error('Failed to upload category image:', error);
+        // Optionally, you could throw an error here if image upload is critical
+      }
+    }
+
+    return savedCategory;
   }
 
   // find all categories
@@ -57,7 +79,7 @@ export class CategoryService {
   }
 
   // remove a category by ID
-  async remove(id: number | string): Promise<Category> {
+  async remove(id: number | string): Promise<string> {
     const category = await this.findOne(id);
 
     //  check if category has products
@@ -67,38 +89,40 @@ export class CategoryService {
       );
     }
 
-    return this.categoryRepository.remove(category);
+    await this.categoryRepository.remove(category);
+    await this.imagesService.removeByEntity(category.id, 'category');
+    return `Category has been deleted successfully`;
   }
 
   // Upload a single image for a category
-  async uploadImage(
-    categoryId: string,
-    file: Express.Multer.File,
-    isMain: boolean = false,
-  ) {
-    if (!file) {
-      throw new NotFoundException('No file uploaded');
-    }
-    const category = await this.findOne(categoryId);
+  // async uploadImage(
+  //   categoryId: string,
+  //   file: Express.Multer.File,
+  //   isMain: boolean = false,
+  // ) {
+  //   if (!file) {
+  //     throw new NotFoundException('No file uploaded');
+  //   }
+  //   const category = await this.findOne(categoryId);
 
-    return this.imagesService.create(file, {
-      type: ImageType.CATEGORY,
-      entityId: category.id,
-      entityType: 'category',
-      isMain,
-    });
-  }
+  //   return this.imagesService.create(file, {
+  //     type: ImageType.CATEGORY,
+  //     entityId: category.id,
+  //     entityType: 'category',
+  //     isMain,
+  //   });
+  // }
 
   // Upload multiple images for a category
-  async uploadMultipleImages(categoryId: string, files: Express.Multer.File[]) {
-    const category = await this.findOne(categoryId);
+  // async uploadMultipleImages(categoryId: string, files: Express.Multer.File[]) {
+  //   const category = await this.findOne(categoryId);
 
-    return this.imagesService.addMultipleImages(files, {
-      type: ImageType.CATEGORY,
-      entityId: category.id,
-      entityType: 'category',
-    });
-  }
+  //   return this.imagesService.addMultipleImages(files, {
+  //     type: ImageType.CATEGORY,
+  //     entityId: category.id,
+  //     entityType: 'category',
+  //   });
+  // }
 
   // Get all images for a category
   async getImages(categoryId: string) {
@@ -107,20 +131,20 @@ export class CategoryService {
   }
 
   // Delete an image from a category
-  async deleteImage(categoryId: string, imageId: string) {
-    const category = await this.findOne(categoryId);
-    const images = await this.imagesService.findByEntity(
-      category.id,
-      'category',
-    );
+  // async deleteImage(categoryId: string, imageId: string) {
+  //   const category = await this.findOne(categoryId);
+  //   const images = await this.imagesService.findByEntity(
+  //     category.id,
+  //     'category',
+  //   );
 
-    const image = images.find((img) => img.id === imageId);
-    if (!image) {
-      throw new NotFoundException(
-        `Image with ID "${imageId}" not found for this category`,
-      );
-    }
+  //   const image = images.find((img) => img.id === imageId);
+  //   if (!image) {
+  //     throw new NotFoundException(
+  //       `Image with ID "${imageId}" not found for this category`,
+  //     );
+  //   }
 
-    return this.imagesService.remove(imageId);
-  }
+  //   return this.imagesService.remove(imageId);
+  // }
 }
