@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TransactionService } from './transaction.service';
 import { TransactionController } from './transaction.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -13,7 +13,7 @@ import { StripeModule } from 'src/stripe/stripe.module';
   imports: [
     TypeOrmModule.forFeature([Transaction, TransactionItem, Product, User]),
     ProductsModule,
-    StripeModule,
+    forwardRef(() => StripeModule),
   ],
   controllers: [TransactionController],
   providers: [TransactionService],

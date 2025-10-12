@@ -1,10 +1,12 @@
-import { Module } from '@nestjs/common';
-import { StripeService } from './stripe.service';
-import { StripeController } from './stripe.controller';
+import { Module, forwardRef } from '@nestjs/common';
 import { StripeWebhookController } from './stripe-webhook.controller';
+import { StripeService } from './stripe.service';
+import { ConfigModule } from '@nestjs/config';
+import { TransactionModule } from 'src/transaction/transaction.module';
 
 @Module({
-  controllers: [StripeController, StripeWebhookController],
+  imports: [ConfigModule, forwardRef(() => TransactionModule)],
+  controllers: [StripeWebhookController],
   providers: [StripeService],
   exports: [StripeService],
 })

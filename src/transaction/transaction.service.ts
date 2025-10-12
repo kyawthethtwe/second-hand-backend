@@ -510,8 +510,9 @@ export class TransactionService {
     }
 
     // Verify with stripe
-    const paymentIntent =
-      await this.stripeService.retrievePaymentIntent(paymentIntentId);
+    const paymentIntent = await this.stripeService.retrievePaymentIntent({
+      paymentIntentId,
+    });
     if (!paymentIntent || paymentIntent.status !== 'succeeded') {
       throw new BadRequestException('Payment not successful');
     }

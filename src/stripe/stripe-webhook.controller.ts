@@ -1,13 +1,13 @@
 import {
-  Controller,
-  Post,
-  Body,
-  Headers,
   BadRequestException,
+  Body,
+  Controller,
+  Headers,
+  Post,
 } from '@nestjs/common';
-import { StripeService } from './stripe.service';
-import { TransactionService } from '../transaction/transaction.service';
 import Stripe from 'stripe';
+import { TransactionService } from '../transaction/transaction.service';
+import { StripeService } from './stripe.service';
 
 @Controller('stripe/webhook')
 export class StripeWebhookController {
@@ -22,10 +22,10 @@ export class StripeWebhookController {
     @Headers('stripe-signature') signature: string,
   ) {
     try {
-      const event = this.stripeService.constructWebhookEvent(
-        rawBody,
+      const event = this.stripeService.constructWebhookEvent({
+        payload: rawBody,
         signature,
-      );
+      });
 
       switch (event.type) {
         case 'payment_intent.succeeded':

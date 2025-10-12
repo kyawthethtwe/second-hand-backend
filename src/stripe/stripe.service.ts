@@ -1,14 +1,19 @@
 import { Injectable } from '@nestjs/common';
-// import { CreateStripeDto } from './dto/create-stripe.dto';
-// import { UpdateStripeDto } from './dto/update-stripe.dto';
-import Stripe from 'stripe';
 import { ConfigService } from '@nestjs/config';
+import Stripe from 'stripe';
+import {
+  ConstructWebhookEventDto,
+  CreateCustomerDto,
+  CreatePaymentIntentDto,
+  CreateRefundDto,
+  RetrievePaymentIntentDto,
+} from './dto/create-stripe.dto';
 
 @Injectable()
 export class StripeService {
   private readonly stripe: Stripe;
   constructor(private configService: ConfigService) {
-    const secretKey = this.configService.get<string>('stripe.secretKey');
+    const secretKey = this.configService.get<string>('STRIPE_SECRET_KEY');
     if (!secretKey) {
       throw new Error('Stripe secret key is not defined in configuration');
     }
@@ -17,20 +22,16 @@ export class StripeService {
     });
   }
 
-  async createPaymentIntent(params: {
-    amount: number; //in cent
-    currency?: string;
-    customerId?: string;
-    metadata?: Record<string, string>;
-    description?: string;
-  }): Promise<Stripe.PaymentIntent> {
+  async createPaymentIntent(
+    createPaymentIntentDto: CreatePaymentIntentDto,
+  ): Promise<Stripe.PaymentIntent> {
     const {
       amount,
       currency = 'thb',
       customerId,
       metadata = {},
       description,
-    } = params;
+    } = createPaymentIntentDto;
     return await this.stripe.paymentIntents.create({
       amount,
       currency,
@@ -42,25 +43,20 @@ export class StripeService {
   }
 
   async retrievePaymentIntent(
-    paymentIntentId: string,
+    retrievePaymentIntentDto: RetrievePaymentIntentDto,
   ): Promise<Stripe.PaymentIntent> {
+    const { paymentIntentId } = retrievePaymentIntentDto;
     return await this.stripe.paymentIntents.retrieve(paymentIntentId);
   }
 
-  async createCustomer(params: {
-    email: string;
-    name?: string;
-    phone?: string;
-    metadata?: Record<string, string>;
-  }): Promise<Stripe.Customer> {
-    return await this.stripe.customers.create(params);
+  async createCustomer(
+    createCustomerDto: CreateCustomerDto,
+  ): Promise<Stripe.Customer> {
+    return await this.stripe.customers.create(createCustomerDto);
   }
 
-  async createRefund(
-    paymentId: string,
-    amount?: number,
-    reason?: Stripe.RefundCreateParams.Reason,
-  ): Promise<Stripe.Refund> {
+  async createRefund(createRefundDto: CreateRefundDto): Promise<Stripe.Refund> {
+    const { paymentId, amount, reason } = createRefundDto;
     return await this.stripe.refunds.create({
       payment_intent: paymentId,
       amount,
@@ -69,9 +65,9 @@ export class StripeService {
   }
 
   constructWebhookEvent(
-    payload: string | Buffer,
-    signature: string,
+    constructWebhookEventDto: ConstructWebhookEventDto,
   ): Stripe.Event {
+    const { payload, signature } = constructWebhookEventDto;
     const webhookSecret = this.configService.get<string>(
       'stripe.webhookSecret',
     );

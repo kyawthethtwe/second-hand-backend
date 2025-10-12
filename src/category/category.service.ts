@@ -45,7 +45,20 @@ export class CategoryService {
 
   // find all categories
   async findAll(): Promise<Category[]> {
-    return this.categoryRepository.find();
+    const categories = await this.categoryRepository.find();
+    const categoriesWithImages = await Promise.all(
+      categories.map(async (category) => {
+        const images = await this.imagesService.findByEntity(
+          category.id,
+          'category',
+        );
+        return {
+          ...category,
+          images,
+        };
+      }),
+    );
+    return categoriesWithImages;
   }
 
   // find a category by ID
