@@ -7,6 +7,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { ColumnNumericTransformer } from '../../common/transformers/numeric.transformer';
 import { User } from '../../users/entities/user/user.entity';
 import { TransactionItem } from './transaction-item.entity';
 
@@ -32,10 +33,16 @@ export class Transaction {
   @OneToMany(() => TransactionItem, (item) => item.transaction)
   items: TransactionItem[];
 
-  @Column('decimal', { precision: 10, scale: 2, default: 0 })
+  @Column('numeric', {
+    default: 0,
+    transformer: new ColumnNumericTransformer(),
+  })
   totalAmount: number;
 
-  @Column('decimal', { precision: 10, scale: 2, default: 0 })
+  @Column('numeric', {
+    default: 0,
+    transformer: new ColumnNumericTransformer(),
+  })
   totalCommission: number;
 
   @Column({

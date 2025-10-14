@@ -9,6 +9,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { Category } from '../../category/entities/category.entity';
+import { ColumnNumericTransformer } from '../../common/transformers/numeric.transformer';
 import { User } from '../../users/entities/user/user.entity';
 import { UserFavorite } from './user-favorite.entity';
 export enum ProductCondition {
@@ -44,7 +45,7 @@ export class Product {
   @Column('text')
   description: string;
 
-  @Column('decimal', { precision: 10, scale: 2 })
+  @Column('numeric', { transformer: new ColumnNumericTransformer() })
   price: number;
 
   @Column({
@@ -104,7 +105,10 @@ export class Product {
   @Column()
   quantity: number;
   // Additional product details for second-hand market
-  @Column('decimal', { precision: 10, scale: 2, nullable: true })
+  @Column('numeric', {
+    nullable: true,
+    transformer: new ColumnNumericTransformer(),
+  })
   originalPrice: number;
 
   @Column({ nullable: true })

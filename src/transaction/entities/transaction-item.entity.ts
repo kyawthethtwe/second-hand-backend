@@ -1,11 +1,12 @@
 import {
   BeforeInsert,
+  BeforeUpdate,
   Column,
   Entity,
   ManyToOne,
   PrimaryGeneratedColumn,
-  BeforeUpdate,
 } from 'typeorm';
+import { ColumnNumericTransformer } from '../../common/transformers/numeric.transformer';
 import { Product } from '../../products/entities/product.entity';
 import { User } from '../../users/entities/user/user.entity';
 import { Transaction } from './transaction.entity';
@@ -53,19 +54,22 @@ export class TransactionItem {
   @Column('int')
   quantity: number;
 
-  @Column('decimal', { precision: 10, scale: 2 })
+  @Column('numeric', { transformer: new ColumnNumericTransformer() })
   unitPrice: number;
 
-  @Column('decimal', { precision: 10, scale: 2 })
+  @Column('numeric', { transformer: new ColumnNumericTransformer() })
   totalPrice: number; // unitPrice * quantity
 
-  @Column('decimal', { precision: 10, scale: 4, default: 0.05 }) // 5%
+  @Column('numeric', {
+    default: 0.05,
+    transformer: new ColumnNumericTransformer(),
+  }) // 5%
   commissionRate: number;
 
-  @Column('decimal', { precision: 10, scale: 2 })
+  @Column('numeric', { transformer: new ColumnNumericTransformer() })
   commissionAmount: number;
 
-  @Column('decimal', { precision: 10, scale: 2 })
+  @Column('numeric', { transformer: new ColumnNumericTransformer() })
   sellerPayout: number;
 
   // Individual item status (useful when different sellers ship separately)
