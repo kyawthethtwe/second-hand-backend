@@ -440,7 +440,7 @@ export class ProductsService {
     return products;
   }
 
-  async getSellerProducts(sellerId: string): Promise<Product[]> {
+  async getSellerProducts(sellerId: string): Promise<Product[] | ProductWithImages[]> {
     // Try to get from cache first
     const cachedProducts =
       await this.cacheService.getCachedSellerProducts(sellerId);
@@ -454,10 +454,20 @@ export class ProductsService {
       order: { createdAt: 'DESC' },
     });
 
+    // Map products to include main images
+    const productsWithImages: ProductWithImages[] = await Promise.all(
+      products.map(async (product) => {
+        const images = await this.imageService.findByEntity(
+          product.id,
+          'product',
+        );
+        return { ...product, images };
+      }),
+    );
     // Cache the results
-    await this.cacheService.cacheSellerProducts(sellerId, products);
+    await this.cacheService.cacheSellerProducts(sellerId, productsWithImages);
 
-    return products;
+    return productsWithImages;
   }
 
   // Get only main/primary image for a product (for thumbnails)

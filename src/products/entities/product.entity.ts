@@ -102,7 +102,7 @@ export class Product {
   @Column({ default: 0 })
   favoriteCount: number;
 
-  @Column()
+  @Column({ default: 1 })
   quantity: number;
   // Additional product details for second-hand market
   @Column('numeric', {

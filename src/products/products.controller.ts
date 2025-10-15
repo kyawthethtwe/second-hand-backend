@@ -34,6 +34,7 @@ import { ProductsService } from './products.service';
 // import { UserRole } from 'src/users/entities/user/user.entity';
 import { User } from 'src/users/entities/user/user.entity';
 import { Public } from '../auth/decorators/public.decorator';
+import { Product } from './entities/product.entity';
 import { ProductFilterOptions } from './interfaces/product-filter.interface';
 interface AuthenticatedRequest extends Request {
   user: User;
@@ -129,15 +130,27 @@ export class ProductsController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getProductStatistics(@Req() req: AuthenticatedRequest) {
     // This could be enhanced to return seller-specific statistics
-    const products = await this.productsService.getSellerProducts(req.user.id);
+    const productsResult = await this.productsService.getSellerProducts(
+      req.user.id,
+    );
+    const products = Array.isArray(productsResult) ? productsResult : [];
+
+    const totalViews = products.reduce((sum: number, p: Product) => {
+      return sum + (p.viewCount || 0);
+    }, 0);
+
+    const totalFavorites = products.reduce((sum: number, p: Product) => {
+      return sum + (p.favoriteCount || 0);
+    }, 0);
+
     return {
       totalProducts: products.length,
       activeProducts: products.filter((p) => p.status === ProductStatus.ACTIVE)
         .length,
       soldProducts: products.filter((p) => p.status === ProductStatus.SOLD)
         .length,
-      totalViews: products.reduce((sum, p) => sum + p.viewCount, 0),
-      totalFavorites: products.reduce((sum, p) => sum + p.favoriteCount, 0),
+      totalViews,
+      totalFavorites,
     };
   }
 

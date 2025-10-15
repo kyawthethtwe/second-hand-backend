@@ -1,3 +1,4 @@
+import { Transform } from 'class-transformer';
 import {
   IsBoolean,
   IsDateString,
@@ -17,6 +18,7 @@ export class CreateProductDto {
   @IsString()
   description: string;
 
+  @Transform(({ value }) => parseFloat(value))
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
   price: number;
@@ -36,10 +38,12 @@ export class CreateProductDto {
   location?: string;
 
   @IsOptional()
+  @Transform(({ value }) => parseFloat(value) || undefined)
   @IsNumber()
   latitude?: number;
 
   @IsOptional()
+  @Transform(({ value }) => parseFloat(value) || undefined)
   @IsNumber()
   longitude?: number;
 
@@ -47,10 +51,18 @@ export class CreateProductDto {
   categoryId: string;
 
   @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === true)
   @IsBoolean()
   isNegotiable?: boolean;
 
   @IsOptional()
+  @Transform(({ value }) => parseInt(value, 10) || undefined)
+  @IsNumber()
+  @Min(1)
+  quantity?: number;
+
+  @IsOptional()
+  @Transform(({ value }) => parseFloat(value) || undefined)
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
   originalPrice?: number;
@@ -64,12 +76,14 @@ export class CreateProductDto {
   model?: string;
 
   @IsOptional()
+  @Transform(({ value }) => parseInt(value, 10) || undefined)
   @IsNumber()
   @Min(1900)
   @Max(new Date().getFullYear())
   yearOfPurchase?: number;
 
   @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === true)
   @IsBoolean()
   hasWarranty?: boolean;
 
@@ -82,6 +96,7 @@ export class CreateProductDto {
   reasonForSelling?: string;
 
   @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === true)
   @IsBoolean()
   isUrgentSale?: boolean;
 
