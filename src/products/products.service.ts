@@ -366,6 +366,7 @@ export class ProductsService {
     updateProductDto: UpdateProductDto,
     userId: string,
     isAdmin: boolean = false,
+    files?: Express.Multer.File[],
   ): Promise<Product> {
     const product = await this.findOne(id, false);
 
@@ -384,11 +385,40 @@ export class ProductsService {
       }
     }
 
+    // Handle image replacement if new images are provided
+    if (files && files.length > 0) {
+      try {
+        // Delete old images from Cloudinary and database
+        await this.imageService.removeByEntity(id, 'product');
+
+        // Upload new images
+        await this.imageService.addMultipleImages(files, {
+          type: ImageType.PRODUCT,
+          entityId: id,
+          entityType: 'product',
+        });
+        console.log(
+          `Replaced images for product ${id} with ${files.length} new images`,
+        );
+      } catch (error) {
+        console.error('Error replacing images:', error);
+        throw new BadRequestException('Failed to update product images');
+      }
+    }
+
     await this.productRepository.update(id, updateProductDto);
+
+    // Invalidate relevant caches
+    await this.cacheService.invalidateProductCache(
+      id,
+      product.sellerId,
+      product.categoryId,
+    );
+
     return this.findOne(id, false);
   }
 
-  // Soft delete product (set status to HIDDEN)
+  // delete product
   async remove(
     id: string,
     userId: string,
@@ -401,8 +431,18 @@ export class ProductsService {
       throw new ForbiddenException('You can only delete your own products');
     }
 
-    // Soft delete by setting status to HIDDEN
-    await this.productRepository.update(id, { status: ProductStatus.HIDDEN });
+    // Delete all associated images from Cloudinary and database
+    await this.imageService.removeByEntity(id, 'product');
+
+    // Delete the product from database
+    await this.productRepository.delete(id);
+
+    // Invalidate relevant caches
+    await this.cacheService.invalidateProductCache(
+      id,
+      product.sellerId,
+      product.categoryId,
+    );
   }
 
   // Additional utility methods for marketplace features
@@ -440,7 +480,9 @@ export class ProductsService {
     return products;
   }
 
-  async getSellerProducts(sellerId: string): Promise<Product[] | ProductWithImages[]> {
+  async getSellerProducts(
+    sellerId: string,
+  ): Promise<Product[] | ProductWithImages[]> {
     // Try to get from cache first
     const cachedProducts =
       await this.cacheService.getCachedSellerProducts(sellerId);

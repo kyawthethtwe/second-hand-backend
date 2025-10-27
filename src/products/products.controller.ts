@@ -178,8 +178,10 @@ export class ProductsController {
 
   @Patch(':id')
   @UseGuards(JwtAuthGuard)
+  @UseInterceptors(FilesInterceptor('images', 10)) // Allow up to 10 images
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Update a product' })
+  @ApiConsumes('multipart/form-data')
   @ApiResponse({
     status: 200,
     description: 'Product updated successfully',
@@ -190,9 +192,16 @@ export class ProductsController {
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body(ValidationPipe) updateProductDto: UpdateProductDto,
+    @UploadedFiles() files: Express.Multer.File[],
     @Req() req: AuthenticatedRequest,
   ) {
-    return this.productsService.update(id, updateProductDto, req.user.id);
+    return this.productsService.update(
+      id,
+      updateProductDto,
+      req.user.id,
+      false,
+      files,
+    );
   }
 
   @Patch(':id/mark-sold')
