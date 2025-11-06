@@ -299,7 +299,7 @@ export class ProductsService {
     userId: string,
     queryDto: ProductQueryDto,
   ): Promise<{
-    data: Product[];
+    products: Product[];
     total: number;
     page: number;
     limit: number;
@@ -311,7 +311,7 @@ export class ProductsService {
     });
 
     return {
-      data: result.products,
+      products: result.products,
       total: result.total,
       page: result.page,
       limit: queryDto.limit || 20,
