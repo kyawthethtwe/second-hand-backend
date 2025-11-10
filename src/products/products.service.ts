@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  // Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -23,6 +24,7 @@ import {
 import { ProductCacheService } from './services/product-cache.service';
 @Injectable()
 export class ProductsService {
+  // private readonly logger = new Logger(ProductsService.name);
   constructor(
     @InjectRepository(Product)
     private readonly productRepository: Repository<Product>,
@@ -171,7 +173,6 @@ export class ProductsService {
         }),
       );
     }
-
     // Decorate with favorite status if userId is provided
     if (userId && !favorited) {
       productsWithImages = await this.decorateWithFavoriteStatus(
@@ -179,7 +180,10 @@ export class ProductsService {
         userId,
       );
     }
-
+    // this.logger.log(
+    //   `Fetched Products - count: ${Array.isArray(productsWithImages) ? productsWithImages.length : 0}`,
+    // );
+    // this.logger.debug(`Products data: ${JSON.stringify(productsWithImages)}`);
     return {
       products: productsWithImages,
       total,
@@ -269,6 +273,12 @@ export class ProductsService {
     if (existingFavorite) {
       //remove from favorites
       await this.userFavoriteRepository.remove(existingFavorite);
+      //update favorite count
+      await this.productRepository.decrement(
+        { id: productId },
+        'favoriteCount',
+        1,
+      );
       isFavorited = false;
       message = 'Removed from favorites';
     } else {
@@ -278,6 +288,12 @@ export class ProductsService {
         productId,
       });
       await this.userFavoriteRepository.save(favorite);
+      // update favorite count
+      await this.productRepository.increment(
+        { id: productId },
+        'favoriteCount',
+        1,
+      );
       isFavorited = true;
       message = 'Added to favorites';
     }

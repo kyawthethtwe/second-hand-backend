@@ -17,6 +17,7 @@ import { ImagesModule } from './images/images.module';
 import { CloudinaryModule } from './cloudinary/cloudinary.module';
 import { StripeModule } from './stripe/stripe.module';
 import { EmailModule } from './email/email.module';
+import { OptionalJwtAuthGuard } from './auth/guards/optional-jwt-auth.guard';
 
 @Module({
   imports: [
@@ -46,6 +47,7 @@ import { EmailModule } from './email/email.module';
       provide: APP_GUARD,
       useClass: RolesGuard,
     },
+    { provide: APP_GUARD, useClass: OptionalJwtAuthGuard },
   ],
 })
 export class AppModule {}
