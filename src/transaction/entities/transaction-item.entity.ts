@@ -26,6 +26,7 @@ export enum ItemStatus {
   SHIPPED = 'shipped',
   DELIVERED = 'delivered',
   CANCELLED = 'cancelled',
+  EXPIRED = 'expired',
 }
 
 @Entity()

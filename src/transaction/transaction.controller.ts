@@ -37,6 +37,7 @@ export class TransactionController {
   constructor(private readonly transactionService: TransactionService) {}
 
   // Create transaction (buyer only)
+  // POST /transaction
   @Post()
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('JWT-auth')
@@ -55,7 +56,8 @@ export class TransactionController {
       createTransactionDto,
     );
   }
-
+  // Get all transactions (admin only)
+  // GET /transaction
   @Get()
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('JWT-auth')
@@ -69,9 +71,8 @@ export class TransactionController {
     return this.transactionService.findAll(query);
   }
 
-  // ===== SPECIFIC ROUTES FIRST (before :id route) =====
-
   // Get current user's purchases
+  // GET /transaction/my-purchases
   @Get('my-purchases')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('JWT-auth')
@@ -142,7 +143,6 @@ export class TransactionController {
   }
 
   // ===== PARAMETER ROUTES LAST =====
-
   @Get(':id')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('JWT-auth')
@@ -216,6 +216,8 @@ export class TransactionController {
     );
   }
 
+  // Payment integration routes
+  // POST /transaction/payment-intent
   @Post('payment-intent')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('JWT-auth')

@@ -6,7 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, In, Repository } from 'typeorm';
+import { DataSource, In, Repository, LessThan } from 'typeorm';
 import { Product } from '../products/entities/product.entity';
 import { User } from '../users/entities/user/user.entity';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
@@ -20,7 +20,7 @@ import {
 } from './entities/transaction-item.entity';
 import { Transaction, TransactionStatus } from './entities/transaction.entity';
 import { StripeService } from '../stripe/stripe.service';
-
+import { Cron, CronExpression } from '@nestjs/schedule';
 @Injectable()
 export class TransactionService {
   constructor(
@@ -90,11 +90,14 @@ export class TransactionService {
       }
 
       // 5. Create transaction
+      const expirationTime = new Date();
+      expirationTime.setMinutes(expirationTime.getMinutes() + 30); // 30 minutes from now for payment
       const transaction = this.transactionRepository.create({
         buyerId,
         buyer,
         shippingInstructions: createTransactionDto.shippingInfo,
         status: TransactionStatus.PENDING,
+        expiresAt: expirationTime,
       });
 
       const savedTransaction = await queryRunner.manager.save(transaction);
@@ -547,6 +550,7 @@ export class TransactionService {
       [TransactionStatus.PENDING]: [
         TransactionStatus.PAID,
         TransactionStatus.CANCELLED,
+        TransactionStatus.EXPIRED,
       ],
       [TransactionStatus.PAID]: [
         TransactionStatus.SHIPPING,
@@ -559,6 +563,7 @@ export class TransactionService {
       [TransactionStatus.COMPLETED]: [TransactionStatus.REFUNDED],
       [TransactionStatus.CANCELLED]: [],
       [TransactionStatus.REFUNDED]: [],
+      [TransactionStatus.EXPIRED]: [],
     };
 
     // Validate the status transition
@@ -574,12 +579,17 @@ export class TransactionService {
     newStatus: ItemStatus,
   ): void {
     const validTransitions: Record<ItemStatus, ItemStatus[]> = {
-      [ItemStatus.PENDING]: [ItemStatus.PAID, ItemStatus.CANCELLED],
+      [ItemStatus.PENDING]: [
+        ItemStatus.PAID,
+        ItemStatus.CANCELLED,
+        ItemStatus.EXPIRED,
+      ],
       [ItemStatus.PAID]: [ItemStatus.PROCESSING, ItemStatus.CANCELLED],
       [ItemStatus.PROCESSING]: [ItemStatus.SHIPPED, ItemStatus.CANCELLED],
       [ItemStatus.SHIPPED]: [ItemStatus.DELIVERED],
       [ItemStatus.DELIVERED]: [],
       [ItemStatus.CANCELLED]: [],
+      [ItemStatus.EXPIRED]: [],
     };
 
     if (!validTransitions[currentStatus]?.includes(newStatus)) {
@@ -699,5 +709,65 @@ export class TransactionService {
       pendingOrders: parseInt(stats.pendingOrders ?? '0') || 0,
       completedOrders: parseInt(stats.completedOrders ?? '0') || 0,
     };
+  }
+
+  @Cron(CronExpression.EVERY_10_MINUTES)
+  async expirePendingTransactions() {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // Find expired pending transactions
+      const expiredTransactions = await this.transactionRepository.find({
+        where: {
+          status: TransactionStatus.PENDING,
+          expiresAt: LessThan(new Date()),
+        },
+        relations: ['items'],
+      });
+
+      for (const transaction of expiredTransactions) {
+        // Restore stock for each item
+        for (const item of transaction.items) {
+          await queryRunner.manager.increment(
+            Product,
+            { id: item.productId },
+            'quantity',
+            item.quantity,
+          );
+        }
+
+        // Update transaction status to expired
+        await queryRunner.manager.update(
+          Transaction,
+          { id: transaction.id },
+          {
+            status: TransactionStatus.EXPIRED,
+            cancellationReason: 'Transaction expired after 30 minutes',
+          },
+        );
+
+        // Update items status to expired
+        await queryRunner.manager.update(
+          TransactionItem,
+          { transactionId: transaction.id },
+          { status: ItemStatus.EXPIRED },
+        );
+      }
+
+      await queryRunner.commitTransaction();
+
+      if (expiredTransactions.length > 0) {
+        console.log(
+          `Expired ${expiredTransactions.length} pending transactions`,
+        );
+      }
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      console.error('Error expiring transactions:', error);
+    } finally {
+      await queryRunner.release();
+    }
   }
 }

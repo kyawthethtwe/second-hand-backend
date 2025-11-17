@@ -18,13 +18,14 @@ import { CloudinaryModule } from './cloudinary/cloudinary.module';
 import { StripeModule } from './stripe/stripe.module';
 import { EmailModule } from './email/email.module';
 import { OptionalJwtAuthGuard } from './auth/guards/optional-jwt-auth.guard';
-
+import { ScheduleModule } from '@nestjs/schedule';
 @Module({
   imports: [
     TypeOrmModule.forFeature([User]),
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    ScheduleModule.forRoot(),
     TypeOrmModule.forRoot(dataSource.options),
     AuthModule,
     UsersModule,

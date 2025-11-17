@@ -18,6 +18,7 @@ export enum TransactionStatus {
   COMPLETED = 'completed',
   CANCELLED = 'cancelled',
   REFUNDED = 'refunded',
+  EXPIRED = 'expired',
 }
 @Entity()
 export class Transaction {
@@ -61,6 +62,8 @@ export class Transaction {
   @Column({ nullable: true })
   paymentIntentId: string;
 
+  @Column({ type: 'timestamp', nullable: true })
+  expiresAt: Date;
   // Shipping handled by sellers
   @Column('json', { nullable: true })
   shippingInstructions: any; // Buyer's address, notes
