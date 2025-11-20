@@ -259,6 +259,7 @@ export class TransactionService {
     return this.findAll({ ...query, sellerId });
   }
 
+  //update transaction details
   async updateTransaction(
     id: string,
     updateTransactionDto: UpdateTransactionDto,
@@ -389,7 +390,8 @@ export class TransactionService {
     });
   }
 
-  async getSellerItems(
+  // Get sale items for a seller with filtering
+  async getSaleItems(
     sellerId: string,
     query: TransactionQueryDto,
   ): Promise<{
@@ -399,11 +401,11 @@ export class TransactionService {
     limit: number;
   }> {
     const queryBuilder = this.transactionItemRepository
-      .createQueryBuilder('item')
-      .leftJoinAndSelect('item.transaction', 'transaction')
-      .leftJoinAndSelect('item.product', 'product')
-      .leftJoinAndSelect('transaction.buyer', 'buyer')
-      .where('item.sellerId = :sellerId', { sellerId });
+      .createQueryBuilder('item') // Alias 'item' for TransactionItem
+      .leftJoinAndSelect('item.transaction', 'transaction') // Join with Transaction entity
+      .leftJoinAndSelect('item.product', 'product') // Join with Product entity
+      .leftJoinAndSelect('transaction.buyer', 'buyer') // Join with Buyer entity
+      .where('item.sellerId = :sellerId', { sellerId }); // Filter by sellerId
 
     // Apply filters
     if (query.status) {
@@ -440,13 +442,16 @@ export class TransactionService {
     };
   }
 
+  // Create a payment intent for a transaction
   async createPaymentIntent(
     createPaymentIntentDto: CreatePaymentIntentDto,
   ): Promise<{ clientSecret: string | null; transactionId: string }> {
+    // Find the transaction
     const transaction = await this.findOne(
       createPaymentIntentDto.transactionId,
     );
 
+    // Check if transaction is pending
     if (transaction.status !== TransactionStatus.PENDING) {
       throw new BadRequestException('Transaction is not in pending state');
     }
@@ -516,6 +521,7 @@ export class TransactionService {
     const paymentIntent = await this.stripeService.retrievePaymentIntent({
       paymentIntentId,
     });
+    // Check if payment succeeded
     if (!paymentIntent || paymentIntent.status !== 'succeeded') {
       throw new BadRequestException('Payment not successful');
     }
@@ -574,6 +580,7 @@ export class TransactionService {
     }
   }
 
+  // Validate item status transitions
   private validateItemStatusTransition(
     currentStatus: ItemStatus,
     newStatus: ItemStatus,
@@ -599,13 +606,14 @@ export class TransactionService {
     }
   }
 
+  // Check if all items are delivered to complete the transaction
   private async checkAndCompleteTransaction(
     transactionId: string,
   ): Promise<void> {
     const items = await this.transactionItemRepository.find({
       where: { transactionId },
     });
-
+    // If all items are delivered, update transaction status to COMPLETED
     const allDelivered = items.every(
       (item) => item.status === ItemStatus.DELIVERED,
     );
@@ -617,8 +625,7 @@ export class TransactionService {
     }
   }
 
-  // ANALYTICS METHODS
-
+  // Get seller statistics
   async getSellerStats(sellerId: string): Promise<{
     totalSales: number;
     totalRevenue: number;
@@ -637,16 +644,16 @@ export class TransactionService {
     // Get seller statistics
     const stats: SellerStatsRaw | undefined =
       await this.transactionItemRepository
-        .createQueryBuilder('item')
+        .createQueryBuilder('item') // Alias 'item' for TransactionItem
         .select([
-          'COUNT(*) as totalSales',
-          'SUM(item.sellerPayout) as totalRevenue',
-          'SUM(item.commissionAmount) as totalCommission',
-          "COUNT(CASE WHEN item.status IN ('pending', 'paid', 'processing', 'shipped') THEN 1 END) as pendingOrders",
-          "COUNT(CASE WHEN item.status = 'delivered' THEN 1 END) as completedOrders",
+          'COUNT(*) as totalSales', // Total number of items sold
+          'SUM(item.sellerPayout) as totalRevenue', // Total revenue for seller
+          'SUM(item.commissionAmount) as totalCommission', // Total commission earned
+          "COUNT(CASE WHEN item.status IN ('pending', 'paid', 'processing', 'shipped') THEN 1 END) as pendingOrders", // Pending orders count
+          "COUNT(CASE WHEN item.status = 'delivered' THEN 1 END) as completedOrders", // Completed orders count
         ])
-        .where('item.sellerId = :sellerId', { sellerId })
-        .getRawOne();
+        .where('item.sellerId = :sellerId', { sellerId }) // Filter by seller ID
+        .getRawOne(); // Execute the query and get raw result
 
     // If no stats found, return default values
     if (!stats) {
@@ -668,6 +675,7 @@ export class TransactionService {
     };
   }
 
+  // Get buyer statistics
   async getBuyerStats(buyerId: string): Promise<{
     totalPurchases: number;
     totalSpent: number;
@@ -683,15 +691,15 @@ export class TransactionService {
 
     // Get buyer statistics
     const stats: BuyerStatsRaw | undefined = await this.transactionRepository
-      .createQueryBuilder('transaction')
+      .createQueryBuilder('transaction') // Alias 'transaction' for Transaction
       .select([
-        'COUNT(*) as totalPurchases',
-        'SUM(transaction.totalAmount) as totalSpent',
-        "COUNT(CASE WHEN transaction.status IN ('pending', 'paid', 'shipping') THEN 1 END) as pendingOrders",
-        "COUNT(CASE WHEN transaction.status = 'completed' THEN 1 END) as completedOrders",
+        'COUNT(*) as totalPurchases', // Total number of transactions
+        'SUM(transaction.totalAmount) as totalSpent', // Total amount spent by buyer
+        "COUNT(CASE WHEN transaction.status IN ('pending', 'paid', 'shipping') THEN 1 END) as pendingOrders", // Pending orders count
+        "COUNT(CASE WHEN transaction.status = 'completed' THEN 1 END) as completedOrders", // Completed orders count
       ])
-      .where('transaction.buyerId = :buyerId', { buyerId })
-      .getRawOne();
+      .where('transaction.buyerId = :buyerId', { buyerId }) // Filter by buyer ID
+      .getRawOne(); // Execute the query and get raw result
 
     // If no stats found, return default values
     if (!stats) {
@@ -711,6 +719,7 @@ export class TransactionService {
     };
   }
 
+  // Scheduled task to expire pending transactions
   @Cron(CronExpression.EVERY_10_MINUTES)
   async expirePendingTransactions() {
     const queryRunner = this.dataSource.createQueryRunner();
@@ -755,7 +764,7 @@ export class TransactionService {
           { status: ItemStatus.EXPIRED },
         );
       }
-
+      // Commit the transaction after all updates
       await queryRunner.commitTransaction();
 
       if (expiredTransactions.length > 0) {

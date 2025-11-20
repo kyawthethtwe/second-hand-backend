@@ -46,6 +46,7 @@ interface AuthenticatedRequest extends Request {
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
+  // Create a new product
   @Post()
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(FilesInterceptor('images', 10)) // Allow up to 10 images
@@ -67,6 +68,7 @@ export class ProductsController {
     return this.productsService.create(createProductDto, req.user.id, files);
   }
 
+  // Get all products with optional filtering
   @UseGuards(OptionalJwtAuthGuard)
   @Get()
   @ApiOperation({ summary: 'Get all products with filtering' })
@@ -87,6 +89,7 @@ export class ProductsController {
     return this.productsService.findAll(options);
   }
 
+  // Advanced search for products
   @Get('search')
   @ApiOperation({ summary: 'Advanced search for products' })
   @ApiResponse({
@@ -97,6 +100,7 @@ export class ProductsController {
     return this.productsService.advancedSearch(searchDto);
   }
 
+  // Get featured products
   @Get('featured')
   @ApiOperation({ summary: 'Get featured products' })
   @ApiResponse({
@@ -108,6 +112,7 @@ export class ProductsController {
     return this.productsService.getFeaturedProducts(limitNum);
   }
 
+  // Get current user's products
   @Get('my-products')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('JWT-auth')

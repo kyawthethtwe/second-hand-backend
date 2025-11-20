@@ -56,6 +56,7 @@ export class TransactionController {
       createTransactionDto,
     );
   }
+
   // Get all transactions (admin only)
   // GET /transaction
   @Get()
@@ -90,6 +91,7 @@ export class TransactionController {
   }
 
   // Get current user's sales
+  // GET /transaction/my-sales
   @Get('my-sales')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('JWT-auth')
@@ -106,7 +108,9 @@ export class TransactionController {
     return this.transactionService.findAll({ ...query, sellerId: req.user.id });
   }
 
-  @Get('my-items')
+  // Get current user's transaction items (as seller)
+  // GET /transaction/my-sales-items
+  @Get('my-sales-items')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: "Get current user's transaction items" })
@@ -115,13 +119,15 @@ export class TransactionController {
     description: 'Transaction items retrieved successfully',
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  getMyItems(
+  getMySalesItems(
     @Query(ValidationPipe) query: TransactionQueryDto,
     @Req() req: AuthenticatedRequest,
   ) {
-    return this.transactionService.getSellerItems(req.user.id, query);
+    return this.transactionService.getSaleItems(req.user.id, query);
   }
 
+  // Get current user's transaction statistics
+  // GET /transaction/my-stats
   @Get('my-stats')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('JWT-auth')
@@ -142,7 +148,8 @@ export class TransactionController {
     }));
   }
 
-  // ===== PARAMETER ROUTES LAST =====
+  // Get transaction by ID
+  // GET /transaction/:id
   @Get(':id')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('JWT-auth')
@@ -157,6 +164,8 @@ export class TransactionController {
     return this.transactionService.findOne(id);
   }
 
+  // Update transaction
+  // PATCH /transaction/:id
   @Patch(':id')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('JWT-auth')
@@ -174,6 +183,8 @@ export class TransactionController {
     return this.transactionService.updateTransaction(id, updateTransactionDto);
   }
 
+  // Cancel transaction
+  // DELETE /transaction/:id
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('JWT-auth')
@@ -193,6 +204,8 @@ export class TransactionController {
     return this.transactionService.cancelTransaction(id, req.user.id, reason);
   }
 
+  // Update transaction item status
+  // PATCH /transaction/item/:itemId
   @Patch('item/:itemId')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('JWT-auth')
@@ -234,6 +247,7 @@ export class TransactionController {
     return this.transactionService.createPaymentIntent(createPaymentIntentDto);
   }
 
+  // POST /transaction/confirm-payment/:transactionId
   @Post('confirm-payment/:transactionId')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('JWT-auth')
