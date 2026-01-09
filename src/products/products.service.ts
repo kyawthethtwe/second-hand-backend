@@ -116,7 +116,8 @@ export class ProductsService {
       .createQueryBuilder('product')
       .leftJoinAndSelect('product.seller', 'seller')
       .leftJoinAndSelect('product.category', 'category')
-      .where('product.status = :status', { status });
+      .where('product.status = :status', { status })
+      .andWhere('product.quantity > 0');
 
     // Add filters
     if (search) {

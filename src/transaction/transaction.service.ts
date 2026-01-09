@@ -60,12 +60,12 @@ export class TransactionService {
       const productIds = createTransactionDto.items.map(
         (item) => item.productId,
       );
-      this.logger.log('Product IDs: ' + productIds);
+      this.logger.log('Product IDs: ' + productIds.map((id) => id).join(', '));
       const products = await this.productRepository.find({
         where: { id: In(productIds) },
         relations: ['seller'], // Load seller relationship
       });
-      this.logger.log('Products: ' + products.map((p) => p.title).join(', ') );
+      this.logger.log('Products: ' + products.map((p) => p.title).join(', '));
       if (products.length !== productIds.length) {
         throw new BadRequestException('Some products not found');
       }
@@ -74,7 +74,10 @@ export class TransactionService {
       const unavailableProducts = products.filter(
         (product) => !product.isAvailable || product.quantity === 0,
       );
-      this.logger.log('Unavailable products: ' + unavailableProducts.map((p) => p.title).join(', '));
+      this.logger.log(
+        'Unavailable products: ' +
+          unavailableProducts.map((p) => p.title).join(', '),
+      );
       if (unavailableProducts.length > 0) {
         throw new BadRequestException(
           `Products not available: ${unavailableProducts.map((p) => p.title).join(', ')}`,

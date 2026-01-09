@@ -12,10 +12,10 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { Cache } from 'cache-manager';
 import { randomBytes } from 'crypto';
+import { EmailService } from 'src/email/email.service';
 import { User } from 'src/users/entities/user/user.entity';
 import { UsersService } from 'src/users/users.service';
 import { RefreshTokenPayload } from './interfaces/jwt-payload.interface';
-
 @Injectable()
 export class AuthService {
   private readonly MAX_LOGIN_ATTEMPTS = 5;
@@ -26,6 +26,7 @@ export class AuthService {
     private usersService: UsersService,
     private jwtService: JwtService,
     private configService: ConfigService,
+    private emailService: EmailService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
@@ -119,6 +120,14 @@ export class AuthService {
     }
 
     const user = await this.usersService.create(email, password, name);
+
+    // Fire-and-forget welcome email so registration is not blocked by email failures
+    this.sendWelcomeEmail(user).catch((err: unknown) => {
+      const message =
+        err instanceof Error ? err.message : JSON.stringify(err ?? {});
+      console.error('Failed to send welcome email:', message);
+    });
+
     return this.login(user);
   }
 
@@ -252,5 +261,24 @@ export class AuthService {
       hasNumbers &&
       hasSpecialChar
     );
+  }
+
+  private async sendWelcomeEmail(user: User): Promise<void> {
+    const appUrl = this.configService.get<string>('APP_URL') || '';
+    const subject = 'Welcome to Second-Hand Exchange';
+    const verificationHint = appUrl
+      ? `<p>You can start exploring right away at <a href="${appUrl}">${appUrl}</a>.</p>`
+      : '';
+
+    await this.emailService.sendEmail({
+      to: user.email,
+      subject,
+      html: `
+        <h1>Hi ${user.name || 'there'}, welcome aboard!</h1>
+        <p>Your account has been created successfully.</p>
+        ${verificationHint}
+        <p>If you did not sign up, please ignore this email.</p>
+      `,
+    });
   }
 }

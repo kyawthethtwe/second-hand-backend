@@ -8,11 +8,12 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { LocalStrategy } from './strategies/local.strategy';
-
+import { EmailModule } from 'src/email/email.module';
 @Module({
   imports: [
     UsersModule,
     PassportModule,
+    EmailModule,
     CacheModule.register({
       isGlobal: true,
       ttl: 60 * 60 * 24, // 24 hours
