@@ -61,6 +61,7 @@ export class TransactionService {
         (item) => item.productId,
       );
       this.logger.log('Product IDs: ' + productIds.map((id) => id).join(', '));
+
       const products = await this.productRepository.find({
         where: { id: In(productIds) },
         relations: ['seller'], // Load seller relationship
@@ -133,6 +134,7 @@ export class TransactionService {
           seller: product.seller,
           quantity: itemDto.quantity,
           unitPrice,
+          commissionRate: 0.05,
           status: ItemStatus.PENDING,
         });
 
@@ -233,7 +235,13 @@ export class TransactionService {
   async findOne(id: string): Promise<Transaction> {
     const transaction = await this.transactionRepository.findOne({
       where: { id },
-      relations: ['buyer', 'items', 'items.product', 'items.seller'],
+      relations: [
+        'buyer',
+        'items',
+        'items.product',
+        'items.product.images',
+        'items.seller',
+      ],
     });
 
     if (!transaction) {

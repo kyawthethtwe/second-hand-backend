@@ -49,6 +49,10 @@ export class ImagesService {
         width: result.width,
         height: result.height,
         format: result.format,
+        productId:
+          createImageDto.type === ImageType.PRODUCT
+            ? createImageDto.entityId
+            : null,
       });
       console.log('Image entity created in image service: ', image);
       // If isMain is true, make sure all other images for this entity are not main
@@ -113,6 +117,10 @@ export class ImagesService {
           width: result.width,
           height: result.height,
           format: result.format,
+          productId:
+            createImageDto.type === ImageType.PRODUCT
+              ? createImageDto.entityId
+              : null,
         });
       });
 

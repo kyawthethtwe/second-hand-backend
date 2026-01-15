@@ -4,6 +4,7 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
+  ManyToOne,
 } from 'typeorm';
 
 export enum ImageType {
@@ -13,6 +14,8 @@ export enum ImageType {
   BANNER = 'banner',
   OTHER = 'other',
 }
+
+import { Product } from '../../products/entities/product.entity';
 
 @Entity()
 export class Image {
@@ -55,6 +58,15 @@ export class Image {
 
   @Column({ nullable: true })
   entityType: string; // Type of the related entity (product, user, category, etc.)
+
+  @ManyToOne(() => Product, (product) => product.images, {
+    onDelete: 'CASCADE',
+    nullable: true,
+  })
+  product: Product;
+
+  @Column({ nullable: true })
+  productId: string | null;
 
   @CreateDateColumn()
   createdAt: Date;

@@ -23,8 +23,8 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Request } from 'express';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { OptionalJwtAuthGuard } from 'src/auth/guards/optional-jwt-auth.guard';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CreateProductDto } from './dto/create-product.dto';
 import { ProductQueryDto } from './dto/product-query.dto';
 import { ProductSearchDto } from './dto/product-search.dto';
@@ -34,7 +34,7 @@ import { ProductsService } from './products.service';
 // import { Roles } from 'src/auth/decorators/roles.decorator';
 // import { UserRole } from 'src/users/entities/user/user.entity';
 import { User } from 'src/users/entities/user/user.entity';
-// import { Public } from '../auth/decorators/public.decorator';
+import { Public } from '../auth/decorators/public.decorator';
 import { Product } from './entities/product.entity';
 import { ProductFilterOptions } from './interfaces/product-filter.interface';
 interface AuthenticatedRequest extends Request {
@@ -69,6 +69,7 @@ export class ProductsController {
   }
 
   // Get all products with optional filtering
+  @Public()
   @UseGuards(OptionalJwtAuthGuard)
   @Get()
   @ApiOperation({ summary: 'Get all products with filtering' })

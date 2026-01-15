@@ -65,7 +65,7 @@ export class TransactionItem {
     default: 0.05,
     transformer: new ColumnNumericTransformer(),
   }) // 5%
-  commissionRate: number;
+  commissionRate: number = 0.05;
 
   @Column('numeric', { transformer: new ColumnNumericTransformer() })
   commissionAmount: number;

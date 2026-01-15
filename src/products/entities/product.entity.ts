@@ -12,6 +12,8 @@ import { Category } from '../../category/entities/category.entity';
 import { ColumnNumericTransformer } from '../../common/transformers/numeric.transformer';
 import { User } from '../../users/entities/user/user.entity';
 import { UserFavorite } from './user-favorite.entity';
+import { Image } from '../../images/entities/image.entity';
+
 export enum ProductCondition {
   NEW = 'new',
   LIKE_NEW = 'like_new',
@@ -83,6 +85,9 @@ export class Product {
 
   @OneToMany(() => UserFavorite, (favorite) => favorite.product)
   favoritedBy: UserFavorite[];
+
+  @OneToMany(() => Image, (image) => image.product)
+  images?: Image[];
 
   @ManyToOne(() => Category, (category) => category.products)
   category: Category;
