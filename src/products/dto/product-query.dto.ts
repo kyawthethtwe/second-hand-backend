@@ -7,6 +7,7 @@ import {
   IsString,
   Max,
   Min,
+  IsUUID,
 } from 'class-validator';
 import { ProductCondition, ProductStatus } from '../entities/product.entity';
 
@@ -29,7 +30,7 @@ export class ProductQueryDto {
   search?: string;
 
   @IsOptional()
-  @IsString()
+  @IsUUID()
   categoryId?: string;
 
   @IsOptional()
@@ -53,7 +54,7 @@ export class ProductQueryDto {
   location?: string;
 
   @IsOptional()
-  @IsString()
+  @IsUUID()
   sellerId?: string;
 
   @IsOptional()
